@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { db } from "@/lib/db";
 import { PageHeader, Section } from "@/components/ui/Page";
 import { DateRangeFilter } from "@/components/DateRangeFilter";

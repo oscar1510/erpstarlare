@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { PageHeader } from "@/components/ui/Page";
 import { Field, Select, TextArea } from "@/components/ui/Field";
 import { DocumentUploader } from "@/components/DocumentUploader";

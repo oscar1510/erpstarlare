@@ -1,112 +1,98 @@
-import { execFile } from "child_process";
-import { promisify } from "util";
-import { mkdtemp, readFile, readdir, rm } from "fs/promises";
 import path from "path";
-import os from "os";
-
-const execFileAsync = promisify(execFile);
+import { createWorker, OEM } from "tesseract.js";
 
 export interface OcrResult {
   text: string;
   confidence: number; // 0..1, average word confidence where available
-  engine: "tesseract" | "pdftotext" | "pdftotext+tesseract" | "none";
+  engine: "tesseract" | "pdf-text" | "none";
   ok: boolean;
   error?: string;
 }
 
 const IMAGE_MIME_RE = /^image\//;
 
-async function runTesseractOnImage(imagePath: string): Promise<{ text: string; confidence: number }> {
-  // Plain text pass
-  const { stdout: text } = await execFileAsync(
-    "tesseract",
-    [imagePath, "stdout", "--psm", "6"],
-    { maxBuffer: 20 * 1024 * 1024 }
-  );
+// Bundled locally so OCR never depends on an external CDN at request time
+// (serverless functions get one cold-start fetch of the CDN copy otherwise,
+// which is slow and a single point of failure for a core feature).
+const TESSDATA_PATH = path.join(process.cwd(), "assets", "tessdata");
 
-  // TSV pass to recover per-word confidence
-  let confidence = 0.6; // sane default if TSV parsing fails
+async function runTesseractOnImage(buffer: Buffer): Promise<{ text: string; confidence: number }> {
+  const worker = await createWorker("eng", OEM.LSTM_ONLY, {
+    langPath: TESSDATA_PATH,
+    cachePath: "/tmp",
+    gzip: true,
+  });
   try {
-    const { stdout: tsv } = await execFileAsync(
-      "tesseract",
-      [imagePath, "stdout", "--psm", "6", "tsv"],
-      { maxBuffer: 20 * 1024 * 1024 }
-    );
-    const rows = tsv.split("\n").slice(1);
-    const confidences: number[] = [];
-    for (const row of rows) {
-      const cols = row.split("\t");
-      const conf = parseFloat(cols[10]);
-      if (Number.isFinite(conf) && conf >= 0) confidences.push(conf);
-    }
-    if (confidences.length > 0) {
-      confidence = confidences.reduce((a, b) => a + b, 0) / confidences.length / 100;
-    }
-  } catch {
-    // keep default confidence
+    const { data } = await worker.recognize(buffer);
+    return { text: data.text, confidence: (data.confidence ?? 60) / 100 };
+  } finally {
+    await worker.terminate();
   }
-
-  return { text, confidence };
-}
-
-async function rasterizePdf(pdfPath: string, outDir: string): Promise<string[]> {
-  await execFileAsync("pdftoppm", ["-r", "200", "-png", pdfPath, path.join(outDir, "page")], {
-    maxBuffer: 20 * 1024 * 1024,
-  });
-  const files = await readdir(outDir);
-  return files
-    .filter((f) => f.startsWith("page") && f.endsWith(".png"))
-    .sort()
-    .map((f) => path.join(outDir, f));
-}
-
-async function extractPdfText(pdfPath: string): Promise<string> {
-  const { stdout } = await execFileAsync("pdftotext", ["-layout", pdfPath, "-"], {
-    maxBuffer: 20 * 1024 * 1024,
-  });
-  return stdout;
 }
 
 /**
- * Run OCR on a stored file. Images go straight to tesseract. PDFs first try
- * the embedded text layer (fast, perfectly accurate for born-digital PDFs
- * like Stripe invoices); if that yields too little text we assume it's a
- * scan and rasterize + tesseract each page instead.
+ * Extracts embedded PDF text via pdfjs-dist (actively maintained; the
+ * `pdf-parse` package was tried first but bundles a long-abandoned pdf.js
+ * v1.10 that chokes on plenty of real-world PDFs). Text items come back as a
+ * flat list with no line breaks, so lines are reconstructed from each item's
+ * Y position — several of the field-extraction regexes depend on `\n`
+ * boundaries to avoid matching across unrelated lines.
  */
-export async function runOcr(absolutePath: string, mimeType: string): Promise<OcrResult> {
+async function extractPdfText(buffer: Buffer): Promise<string> {
+  const { getDocument } = await import("pdfjs-dist/legacy/build/pdf.mjs");
+  const doc = await getDocument({
+    data: new Uint8Array(buffer),
+    useSystemFonts: true,
+  }).promise;
+
+  let text = "";
+  for (let i = 1; i <= doc.numPages; i++) {
+    const page = await doc.getPage(i);
+    const content = await page.getTextContent();
+    let lastY: number | null = null;
+    let line = "";
+    for (const item of content.items) {
+      if (!("str" in item)) continue;
+      const y = item.transform[5];
+      if (lastY !== null && Math.abs(y - lastY) > 2) {
+        text += line.trimEnd() + "\n";
+        line = "";
+      }
+      line += item.str;
+      lastY = y;
+    }
+    text += line.trimEnd() + "\n";
+  }
+  return text;
+}
+
+/**
+ * Run OCR on an in-memory file. Images go straight to tesseract.js (WASM,
+ * no native binary required — safe for serverless). PDFs first try their
+ * embedded text layer (instant, perfectly accurate for born-digital PDFs
+ * like Stripe invoices); if that's empty the PDF is a scan with no OCR
+ * available in this deployment, so we report failure and let the caller
+ * mark it "needs review" rather than losing the upload.
+ */
+export async function runOcr(buffer: Buffer, mimeType: string): Promise<OcrResult> {
   try {
     if (IMAGE_MIME_RE.test(mimeType)) {
-      const { text, confidence } = await runTesseractOnImage(absolutePath);
-      return { text, confidence, engine: "tesseract", ok: true };
+      const { text, confidence } = await runTesseractOnImage(buffer);
+      return { text, confidence, engine: "tesseract", ok: text.trim().length > 0 };
     }
 
     if (mimeType === "application/pdf") {
-      const embedded = await extractPdfText(absolutePath).catch(() => "");
-      if (embedded.replace(/\s+/g, "").length > 60) {
-        return { text: embedded, confidence: 0.95, engine: "pdftotext", ok: true };
+      const text = await extractPdfText(buffer).catch(() => "");
+      if (text.replace(/\s+/g, "").length > 20) {
+        return { text, confidence: 0.95, engine: "pdf-text", ok: true };
       }
-
-      const tmpDir = await mkdtemp(path.join(os.tmpdir(), "ocr-"));
-      try {
-        const pages = await rasterizePdf(absolutePath, tmpDir);
-        let combinedText = "";
-        const confidences: number[] = [];
-        for (const page of pages.slice(0, 15)) {
-          const { text, confidence } = await runTesseractOnImage(page);
-          combinedText += text + "\n";
-          confidences.push(confidence);
-        }
-        const confidence =
-          confidences.length > 0 ? confidences.reduce((a, b) => a + b, 0) / confidences.length : 0;
-        return {
-          text: combinedText || embedded,
-          confidence: combinedText ? confidence : 0.1,
-          engine: "pdftotext+tesseract",
-          ok: combinedText.trim().length > 0,
-        };
-      } finally {
-        await rm(tmpDir, { recursive: true, force: true });
-      }
+      return {
+        text,
+        confidence: 0,
+        engine: "pdf-text",
+        ok: false,
+        error: "No text layer found — this looks like a scanned PDF, which this deployment can't OCR. Upload as a photo/image instead, or fill in the fields manually.",
+      };
     }
 
     return { text: "", confidence: 0, engine: "none", ok: false, error: "Unsupported file type for OCR" };

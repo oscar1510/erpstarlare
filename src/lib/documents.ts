@@ -84,7 +84,7 @@ export async function ingestDocument(opts: IngestOptions): Promise<IngestResult>
     take: 5,
   });
 
-  const ocr = await runOcr(saved.absolutePath, opts.file.type || "application/octet-stream");
+  const ocr = await runOcr(saved.buffer, opts.file.type || "application/octet-stream");
 
   const extractor = extractorFor(opts.documentType);
   const fields: ExtractedFields = ocr.ok && extractor ? extractor(ocr.text) : {};

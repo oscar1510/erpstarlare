@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { PageHeader } from "@/components/ui/Page";
 import { Field, FormGrid, Select, TextArea, TextInput } from "@/components/ui/Field";
 import { CLIENT_STATUSES, labelize } from "@/lib/constants";

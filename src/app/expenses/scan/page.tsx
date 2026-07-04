@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { PageHeader } from "@/components/ui/Page";
 import { DocumentUploader } from "@/components/DocumentUploader";
 import { uploadExpenseReceipts } from "../actions";

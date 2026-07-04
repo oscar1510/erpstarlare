@@ -4,30 +4,33 @@ Internal ERP for Starflare — influencer marketing, SaaS subscriptions, client 
 
 ## Stack
 
+This app is built to run on **Vercel** (serverless): no local disk, no system binaries.
+
 - **Next.js 15** (App Router, Server Actions) + TypeScript + Tailwind CSS
-- **Prisma + SQLite** — zero-config file database at `data/starflare.db`. Swap the `DATABASE_URL` in `.env` to point at Postgres later without touching application code.
-- **OCR**: shells out to the system `tesseract` binary for images, and `pdftotext`/`pdftoppm` (poppler-utils) for PDFs — `pdftotext` first (instant, exact, for born-digital PDFs like Stripe invoices), falling back to rasterize-and-tesseract for scanned documents.
-- **Files**: stored on local disk under `storage/uploads/`, referenced by checksum in the `Document` table (the central archive every other module links into).
-- **PDF/Excel export**: `pdfkit` and `exceljs`.
+- **Prisma + Postgres** — any provider works (Vercel Postgres, Neon, Supabase). Every page that reads data is marked `export const dynamic = "force-dynamic"` so Next never runs a DB query at build time.
+- **OCR**: `tesseract.js` (WASM, no native binary) for images, with the English language model bundled in the repo at `assets/tessdata/` so there's no CDN dependency at request time. PDFs are read via `pdfjs-dist` (actively maintained; the more common `pdf-parse` package was tried first and rejected — it bundles a long-abandoned pdf.js v1.10 that fails to parse plenty of real-world PDFs). A scanned PDF with no embedded text layer has no OCR path in this deployment (see Known limitations) — it's saved and marked "needs review" rather than lost.
+- **Files**: uploaded to **Vercel Blob** (`@vercel/blob`) when `BLOB_READ_WRITE_TOKEN` is set, referenced by checksum in the `Document` table (the central archive every other module links into). Falls back to local disk when that token is absent, purely so local development doesn't need a live Blob store — that fallback does not persist on Vercel and must not be relied on in production.
+- **PDF/Excel export**: `pdfkit` and `exceljs`. `pdfkit`, `fontkit`, `tesseract.js`, and `pdfjs-dist` are all marked `serverExternalPackages` in `next.config.mjs` — each reads binary assets (font metrics, WASM) from disk relative to its own package directory at runtime, and letting webpack bundle them breaks that path resolution.
 - **Email**: `nodemailer`, only active if `SMTP_HOST`/`SMTP_USER`/`SMTP_PASS` are set — otherwise invoices are still marked "sent" and can be downloaded/sent manually.
 
-## Requirements
+## Deploying on Vercel
 
-The OCR pipeline needs system packages, already assumed present on the host:
+1. Provision a Postgres database (Vercel Postgres, Neon, or Supabase) and set `DATABASE_URL` (pooled) and `DIRECT_URL` (direct) as project env vars.
+2. Create a Blob store from the Storage tab and connect it to the project — this injects `BLOB_READ_WRITE_TOKEN` automatically.
+3. Deploy. The build runs `prisma generate && prisma migrate deploy && next build`, so the schema is applied automatically on every deploy — no manual migration step.
+4. Optionally set `SMTP_*` env vars to enable outgoing invoice emails.
 
-```
-apt-get install -y tesseract-ocr poppler-utils
-```
-
-## Getting started
+## Getting started locally
 
 ```bash
 npm install
-cp .env.example .env
-npm run db:push     # create the SQLite schema
-npm run db:seed     # optional: load sample Starflare data
-npm run dev         # http://localhost:3000
+cp .env.example .env   # point DATABASE_URL/DIRECT_URL at a local or hosted Postgres
+npm run db:migrate     # apply migrations (creates them the first time, prompts for a name)
+npm run db:seed        # optional: load sample Starflare data
+npm run dev            # http://localhost:3000
 ```
+
+Without `BLOB_READ_WRITE_TOKEN` set, uploads are written to `storage/uploads/` on disk instead — fine for local dev, not for Vercel.
 
 ## Architecture notes
 
@@ -63,3 +66,4 @@ npm run dev         # http://localhost:3000
 - No live credit-balance tracking for clients — only purchase history.
 - Bank statement transaction parsing is heuristic (regex over OCR/text output); always spot-check parsed transactions since bank PDF layouts vary widely.
 - Email sending requires SMTP env vars; without them, invoices are still marked "sent" for record-keeping.
+- **Scanned PDFs (no embedded text layer) can't be OCR'd in this deployment.** Serverless has no system binary to rasterize a PDF page to an image, so a scanned PDF is saved and marked "needs review" instead. Photos/images of the same document work fine (tesseract.js handles those). If this matters a lot in practice, the clean fix is a hosted OCR API (Google Document AI, AWS Textract, Azure Document Intelligence) — `src/lib/ocr/engine.ts` is the single place that would change.

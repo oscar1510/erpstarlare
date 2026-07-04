@@ -2,8 +2,6 @@ node_modules/
 .next/
 out/
 dist/
-data/*.db
-data/*.db-journal
 storage/uploads/
 *.log
 .env

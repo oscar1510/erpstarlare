@@ -5,24 +5,28 @@
   "description": "Starflare internal ERP system",
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && next build",
+    "build": "prisma generate && prisma migrate deploy && next build",
     "start": "next start",
     "lint": "next lint",
     "db:push": "prisma db push",
-    "db:seed": "tsx prisma/seed.ts",
+    "db:migrate": "prisma migrate dev",
+    "db:seed": "prisma db seed",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@prisma/client": "^6.2.1",
+    "@vercel/blob": "^0.27.1",
     "date-fns": "^4.1.0",
     "exceljs": "^4.4.0",
     "iconv-lite": "^0.7.3",
     "next": "^15.1.4",
     "nodemailer": "^6.9.16",
+    "pdfjs-dist": "^6.1.200",
     "pdfkit": "^0.15.1",
     "prisma": "^6.2.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "tesseract.js": "^5.1.1",
     "uuid": "^11.0.4"
   },
   "devDependencies": {

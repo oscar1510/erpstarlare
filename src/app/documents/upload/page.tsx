@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { db } from "@/lib/db";
 import { PageHeader } from "@/components/ui/Page";
 import { Field, FormGrid, Select } from "@/components/ui/Field";

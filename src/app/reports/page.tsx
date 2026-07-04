@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { PageHeader } from "@/components/ui/Page";
 import { REPORTS } from "@/lib/reports";
 import Link from "next/link";
