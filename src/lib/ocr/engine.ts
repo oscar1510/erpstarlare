@@ -16,18 +16,45 @@ const IMAGE_MIME_RE = /^image\//;
 // which is slow and a single point of failure for a core feature).
 const TESSDATA_PATH = path.join(process.cwd(), "assets", "tessdata");
 
+/**
+ * tesseract.js's Node worker wires up failures via `worker.onerror = ...`,
+ * which is a browser Worker convention — Node's real worker_threads.Worker
+ * has no `onerror` setter, so that assignment is a no-op. Any failure to
+ * spawn/load the worker (missing file, bad WASM, etc.) becomes an unhandled
+ * 'error' event, which Node rethrows as an uncaught exception that crashes
+ * the whole process — bypassing every try/catch around the call (verified
+ * by reproducing it locally). Wrapping the call with our own
+ * `uncaughtException` listener converts that crash back into an ordinary
+ * rejection so a broken OCR run degrades to "needs review" instead of
+ * taking down the request.
+ */
 async function runTesseractOnImage(buffer: Buffer): Promise<{ text: string; confidence: number }> {
-  const worker = await createWorker("eng", OEM.LSTM_ONLY, {
-    langPath: TESSDATA_PATH,
-    cachePath: "/tmp",
-    gzip: true,
+  return new Promise((resolve, reject) => {
+    const onUncaught = (err: Error) => {
+      cleanup();
+      reject(err);
+    };
+    const cleanup = () => process.off("uncaughtException", onUncaught);
+    process.on("uncaughtException", onUncaught);
+
+    (async () => {
+      const worker = await createWorker("eng", OEM.LSTM_ONLY, {
+        langPath: TESSDATA_PATH,
+        cachePath: "/tmp",
+        gzip: true,
+      });
+      try {
+        const { data } = await worker.recognize(buffer);
+        cleanup();
+        resolve({ text: data.text, confidence: (data.confidence ?? 60) / 100 });
+      } finally {
+        await worker.terminate().catch(() => {});
+      }
+    })().catch((err) => {
+      cleanup();
+      reject(err);
+    });
   });
-  try {
-    const { data } = await worker.recognize(buffer);
-    return { text: data.text, confidence: (data.confidence ?? 60) / 100 };
-  } finally {
-    await worker.terminate();
-  }
 }
 
 /**
