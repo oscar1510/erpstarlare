@@ -1,0 +1,41 @@
+{
+  "name": "starflare-erp",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Starflare internal ERP system",
+  "scripts": {
+    "dev": "next dev",
+    "build": "prisma generate && next build",
+    "start": "next start",
+    "lint": "next lint",
+    "db:push": "prisma db push",
+    "db:seed": "tsx prisma/seed.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.2.1",
+    "date-fns": "^4.1.0",
+    "exceljs": "^4.4.0",
+    "iconv-lite": "^0.7.3",
+    "next": "^15.1.4",
+    "nodemailer": "^6.9.16",
+    "pdfkit": "^0.15.1",
+    "prisma": "^6.2.1",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "uuid": "^11.0.4"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "@types/nodemailer": "^6.4.17",
+    "@types/pdfkit": "^0.13.9",
+    "@types/react": "^19.0.4",
+    "@types/react-dom": "^19.0.2",
+    "@types/uuid": "^10.0.0",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.17",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}
