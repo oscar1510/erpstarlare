@@ -34,8 +34,8 @@ export function parseDateLoose(text: string): Date | null {
     if (isValidYMD(y, mo - 1, d)) return new Date(Date.UTC(y, mo - 1, d, 12));
   }
 
-  // DD Month YYYY  (e.g. 5 Jan 2026 / 05 January 2026)
-  m = t.match(/\b(\d{1,2})\s+([A-Za-z]{3,9})\s+((?:19|20)\d{2})\b/);
+  // DD Month YYYY  (e.g. 5 Jan 2026 / 05 January 2026 / 30 Jan, 2026)
+  m = t.match(/\b(\d{1,2})\s+([A-Za-z]{3,9}),?\s+((?:19|20)\d{2})\b/);
   if (m) {
     const d = parseInt(m[1], 10);
     const mo = MONTHS[m[2].toLowerCase()];
@@ -77,10 +77,21 @@ function labelBoundary(label: string): string {
   return "(?<![A-Za-z])(?:" + label + ")";
 }
 
+/**
+ * The gap allowed between a label and its value: an optional colon, same-line
+ * spaces, and at most *one* line break. `\s` alone matches newlines too, so
+ * without this a label sitting alone at the end of a line (common right
+ * before a blank line in two-column layouts, e.g. "Bill to" over a name/
+ * address block) would happily skip a blank line and start capturing from
+ * whatever unrelated text comes after it — confirmed against a real invoice
+ * where "Bill to" ended up capturing the *other* party's address instead.
+ */
+const LABEL_GAP = ":?[ \\t]*\\n?[ \\t]*";
+
 /** Find the best-matching date near a label (e.g. "Invoice Date", "Due Date"). */
 export function findLabeledDate(text: string, labels: string[]): FieldGuess<Date> {
   for (const label of labels) {
-    const re = new RegExp(labelBoundary(label) + "[:\\s]{1,15}([^\\n]{4,30})", "i");
+    const re = new RegExp(labelBoundary(label) + LABEL_GAP + "([^\\n]{4,30})", "i");
     const m = text.match(re);
     if (m) {
       const d = parseDateLoose(m[1]);
@@ -128,7 +139,7 @@ function toNumber(raw: string): number | null {
 export function findLabeledAmount(text: string, labels: string[]): FieldGuess<number> {
   for (const label of labels) {
     const re = new RegExp(
-      labelBoundary(label) + "[:\\s]{1,15}(?:AED|USD|EUR|GBP|SAR|\\$|€|£)?\\s*([0-9][0-9,]*\\.?[0-9]{0,2})",
+      labelBoundary(label) + LABEL_GAP + "(?:AED|USD|EUR|GBP|SAR|\\$|€|£)?\\s*([0-9][0-9,]*\\.?[0-9]{0,2})",
       "i"
     );
     const matches = [...text.matchAll(new RegExp(re, "gi"))];
@@ -193,9 +204,37 @@ export function findTRN(text: string): FieldGuess<string> {
   return { value: null, confidence: 0 };
 }
 
+/**
+ * Invoices commonly render a "Description | Qty | Unit price | Amount" table
+ * header immediately followed by the actual line item(s). A plain
+ * findLabeledText(["Description"]) match grabs whatever sits right after the
+ * word "Description" — which, when the header row is reconstructed onto a
+ * single line (as it is here), is the *rest of the header* ("Qty Unit price
+ * Amount"), not the item. This walks past that header row to the first real
+ * item line and strips its trailing qty/price/amount columns.
+ */
+export function findLineItemDescription(text: string): FieldGuess<string> {
+  const lines = text.split(/\n/).map((l) => l.trim()).filter(Boolean);
+  const headerIdx = lines.findIndex(
+    (l) => /^description\b/i.test(l) && /\bqty\b/i.test(l) && /\bamount\b/i.test(l)
+  );
+  if (headerIdx === -1) return { value: null, confidence: 0 };
+
+  for (let i = headerIdx + 1; i < lines.length; i++) {
+    const line = lines[i];
+    if (/^(subtotal|total|amount due|tax|vat)\b/i.test(line)) break;
+    const cleaned = line
+      .replace(/(?:AED|USD|EUR|GBP|SAR|\$|€|£)\s*[0-9][0-9,]*\.?[0-9]{0,2}/gi, "")
+      .replace(/\s+\d+(?:\.\d+)?\s*$/, "")
+      .trim();
+    if (cleaned.length > 1) return { value: cleaned, confidence: 0.6, raw: line };
+  }
+  return { value: null, confidence: 0 };
+}
+
 export function findLabeledText(text: string, labels: string[], maxLen = 60): FieldGuess<string> {
   for (const label of labels) {
-    const re = new RegExp(labelBoundary(label) + "[:\\s]{1,5}([^\\n]{2," + maxLen + "})", "i");
+    const re = new RegExp(labelBoundary(label) + LABEL_GAP + "([^\\n]{2," + maxLen + "})", "i");
     const m = text.match(re);
     if (m) return { value: m[1].trim(), confidence: 0.7 };
   }

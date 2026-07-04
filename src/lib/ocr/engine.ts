@@ -4,7 +4,7 @@ import { createWorker, OEM } from "tesseract.js";
 export interface OcrResult {
   text: string;
   confidence: number; // 0..1, average word confidence where available
-  engine: "tesseract" | "pdf-text" | "none";
+  engine: "tesseract" | "pdf-text" | "pdf-rasterized" | "none";
   ok: boolean;
   error?: string;
 }
@@ -93,13 +93,52 @@ async function extractPdfText(buffer: Buffer): Promise<string> {
   return text;
 }
 
+const MAX_RASTERIZED_PAGES = 8;
+
+/**
+ * Renders each page of a PDF to a PNG (via pdfjs-dist + @napi-rs/canvas —
+ * a native addon with prebuilt binaries for Vercel's linux-x64-gnu runtime,
+ * no system Poppler/ImageMagick required) and runs each page through
+ * tesseract.js. This is the fallback for PDFs with no embedded text layer —
+ * scans, or (as confirmed against a real customer invoice) PDFs exported by
+ * flattening a rendered page to a single image, which some invoicing tools
+ * do despite the source being genuinely text-based.
+ */
+async function rasterizeAndOcrPdf(buffer: Buffer): Promise<{ text: string; confidence: number }> {
+  const { getDocument } = await import("pdfjs-dist/legacy/build/pdf.mjs");
+  const { createCanvas } = await import("@napi-rs/canvas");
+
+  const doc = await getDocument({ data: new Uint8Array(buffer), useSystemFonts: true }).promise;
+  const pageCount = Math.min(doc.numPages, MAX_RASTERIZED_PAGES);
+
+  let combinedText = "";
+  const confidences: number[] = [];
+
+  for (let i = 1; i <= pageCount; i++) {
+    const page = await doc.getPage(i);
+    const viewport = page.getViewport({ scale: 2.0 }); // ~200 DPI equivalent, good OCR accuracy without being huge
+    const canvas = createCanvas(viewport.width, viewport.height);
+    const context = canvas.getContext("2d");
+
+    await page.render({ canvasContext: context as unknown as CanvasRenderingContext2D, viewport, canvas: canvas as unknown as HTMLCanvasElement }).promise;
+
+    const pngBuffer = canvas.toBuffer("image/png");
+    const { text, confidence } = await runTesseractOnImage(pngBuffer);
+    combinedText += text + "\n";
+    confidences.push(confidence);
+  }
+
+  const confidence = confidences.length ? confidences.reduce((a, b) => a + b, 0) / confidences.length : 0;
+  return { text: combinedText.trim(), confidence };
+}
+
 /**
  * Run OCR on an in-memory file. Images go straight to tesseract.js (WASM,
  * no native binary required — safe for serverless). PDFs first try their
- * embedded text layer (instant, perfectly accurate for born-digital PDFs
- * like Stripe invoices); if that's empty the PDF is a scan with no OCR
- * available in this deployment, so we report failure and let the caller
- * mark it "needs review" rather than losing the upload.
+ * embedded text layer (instant, perfectly accurate for born-digital PDFs);
+ * if that comes back empty, the PDF has no text layer (a scan, or a
+ * flattened export), so each page is rendered to an image and OCR'd instead
+ * — nothing gets marked "needs review" just because it's a PDF.
  */
 export async function runOcr(buffer: Buffer, mimeType: string): Promise<OcrResult> {
   try {
@@ -116,12 +155,21 @@ export async function runOcr(buffer: Buffer, mimeType: string): Promise<OcrResul
       if (text.replace(/\s+/g, "").length > 20) {
         return { text, confidence: 0.95, engine: "pdf-text", ok: true };
       }
+
+      const rasterized = await rasterizeAndOcrPdf(buffer).catch((err) => {
+        console.error("[OCR] PDF rasterize+OCR failed:", err);
+        return null;
+      });
+      if (rasterized && rasterized.text.trim().length > 0) {
+        return { text: rasterized.text, confidence: rasterized.confidence, engine: "pdf-rasterized", ok: true };
+      }
+
       return {
-        text,
+        text: "",
         confidence: 0,
-        engine: "pdf-text",
+        engine: "pdf-rasterized",
         ok: false,
-        error: "No text layer found — this looks like a scanned PDF, which this deployment can't OCR. Upload as a photo/image instead, or fill in the fields manually.",
+        error: "Could not read any text from this PDF, even after rendering it to an image for OCR.",
       };
     }
 

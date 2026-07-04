@@ -9,6 +9,7 @@ import {
   findLabeledDate,
   findLabeledText,
   findLargestAmount,
+  findLineItemDescription,
   findPassportNumber,
   findTRN,
   findVAT,
@@ -80,7 +81,10 @@ export function extractStripeInvoiceFields(text: string): ExtractedFields {
     invoiceDate: findLabeledDate(text, ["Date of issue", "Invoice date", "Date"]),
     dueDate: findLabeledDate(text, ["Due date", "Date due"]),
     invoiceNumber: findInvoiceNumber(text),
-    description: findLabeledText(text, ["Description"], 100),
+    description: (() => {
+      const lineItem = findLineItemDescription(text);
+      return lineItem.value !== null ? lineItem : findLabeledText(text, ["Description"], 100);
+    })(),
     isPaid: { value: paidMatch, confidence: paidMatch ? 0.7 : 0.4 } as FieldGuess<boolean>,
   };
 }
