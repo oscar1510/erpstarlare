@@ -109,7 +109,10 @@ export async function runOcr(buffer: Buffer, mimeType: string): Promise<OcrResul
     }
 
     if (mimeType === "application/pdf") {
-      const text = await extractPdfText(buffer).catch(() => "");
+      const text = await extractPdfText(buffer).catch((err) => {
+        console.error("[OCR] PDF text extraction failed:", err);
+        return "";
+      });
       if (text.replace(/\s+/g, "").length > 20) {
         return { text, confidence: 0.95, engine: "pdf-text", ok: true };
       }
@@ -124,6 +127,7 @@ export async function runOcr(buffer: Buffer, mimeType: string): Promise<OcrResul
 
     return { text: "", confidence: 0, engine: "none", ok: false, error: "Unsupported file type for OCR" };
   } catch (err: any) {
+    console.error("[OCR] runOcr failed:", err);
     return { text: "", confidence: 0, engine: "none", ok: false, error: String(err?.message || err) };
   }
 }
