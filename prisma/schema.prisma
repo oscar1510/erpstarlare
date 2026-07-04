@@ -4,8 +4,12 @@ generator client {
 
 datasource db {
   provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  // These match the exact env var names Vercel's Neon integration injects
+  // automatically (POSTGRES_PRISMA_URL is pre-formatted for Prisma's pooled
+  // connections; DATABASE_URL_UNPOOLED is the direct one migrations need) —
+  // no manual copying of connection strings required once Neon is connected.
+  url       = env("POSTGRES_PRISMA_URL")
+  directUrl = env("DATABASE_URL_UNPOOLED")
 }
 
 // ------------------------------------------------------------------

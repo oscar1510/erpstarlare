@@ -7,7 +7,7 @@ Internal ERP for Starflare — influencer marketing, SaaS subscriptions, client 
 This app is built to run on **Vercel** (serverless): no local disk, no system binaries.
 
 - **Next.js 15** (App Router, Server Actions) + TypeScript + Tailwind CSS
-- **Prisma + Postgres** — any provider works (Vercel Postgres, Neon, Supabase). Every page that reads data is marked `export const dynamic = "force-dynamic"` so Next never runs a DB query at build time.
+- **Prisma + Postgres** — schema.prisma reads `POSTGRES_PRISMA_URL` (pooled) and `DATABASE_URL_UNPOOLED` (direct), the exact env var names Vercel's Neon integration injects automatically — connect a Neon database from the Storage tab and there's nothing to copy by hand. Every page that reads data is marked `export const dynamic = "force-dynamic"` so Next never runs a DB query at build time.
 - **OCR**: `tesseract.js` (WASM, no native binary) for images, with the English language model bundled in the repo at `assets/tessdata/` so there's no CDN dependency at request time. PDFs are read via `pdfjs-dist` (actively maintained; the more common `pdf-parse` package was tried first and rejected — it bundles a long-abandoned pdf.js v1.10 that fails to parse plenty of real-world PDFs). A scanned PDF with no embedded text layer has no OCR path in this deployment (see Known limitations) — it's saved and marked "needs review" rather than lost.
 - **Files**: uploaded to **Vercel Blob** (`@vercel/blob`) when `BLOB_READ_WRITE_TOKEN` is set, referenced by checksum in the `Document` table (the central archive every other module links into). Falls back to local disk when that token is absent, purely so local development doesn't need a live Blob store — that fallback does not persist on Vercel and must not be relied on in production.
 - **PDF/Excel export**: `pdfkit` and `exceljs`. `pdfkit`, `fontkit`, `tesseract.js`, and `pdfjs-dist` are all marked `serverExternalPackages` in `next.config.mjs` — each reads binary assets (font metrics, WASM) from disk relative to its own package directory at runtime, and letting webpack bundle them breaks that path resolution.
@@ -15,16 +15,17 @@ This app is built to run on **Vercel** (serverless): no local disk, no system bi
 
 ## Deploying on Vercel
 
-1. Provision a Postgres database (Vercel Postgres, Neon, or Supabase) and set `DATABASE_URL` (pooled) and `DIRECT_URL` (direct) as project env vars.
-2. Create a Blob store from the Storage tab and connect it to the project — this injects `BLOB_READ_WRITE_TOKEN` automatically.
-3. Deploy. The build runs `prisma generate && prisma migrate deploy && next build`, so the schema is applied automatically on every deploy — no manual migration step.
+1. Project → **Storage** tab → **Create Database** → **Neon** (Postgres) → connect it to all environments. This injects `POSTGRES_PRISMA_URL` and `DATABASE_URL_UNPOOLED` automatically — matches what the schema expects, nothing to rename.
+   - Using Supabase or a standalone Neon/Postgres instance instead? Add `POSTGRES_PRISMA_URL` (pooled) and `DATABASE_URL_UNPOOLED` (direct) yourself in **Settings → Environment Variables** with that provider's connection strings.
+2. Same **Storage** tab → **Create Database** → **Blob** → connect it. This injects `BLOB_READ_WRITE_TOKEN` automatically.
+3. Deploy (or redeploy). The build runs `prisma generate && prisma migrate deploy && next build`, so the schema is applied automatically — no manual migration step.
 4. Optionally set `SMTP_*` env vars to enable outgoing invoice emails.
 
 ## Getting started locally
 
 ```bash
 npm install
-cp .env.example .env   # point DATABASE_URL/DIRECT_URL at a local or hosted Postgres
+cp .env.example .env   # point POSTGRES_PRISMA_URL/DATABASE_URL_UNPOOLED at a local or hosted Postgres
 npm run db:migrate     # apply migrations (creates them the first time, prompts for a name)
 npm run db:seed        # optional: load sample Starflare data
 npm run dev            # http://localhost:3000
