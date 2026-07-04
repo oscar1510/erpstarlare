@@ -1,6 +1,5 @@
 import { createHash } from "crypto";
 import { db } from "./db";
-import { saveUploadedFile } from "./storage";
 import { runOcr } from "./ocr/engine";
 import { ClientFileRef } from "./file-refs";
 import {
@@ -45,11 +44,8 @@ function extractorFor(documentType: string): ((text: string) => ExtractedFields)
 }
 
 export interface IngestOptions {
-  /** Preferred path: a file the browser already uploaded directly to Blob storage (see DocumentUploader). */
-  fileRef?: ClientFileRef;
-  /** Legacy path: a raw File, uploaded to storage here. Only safe for small files — a Server Action's
-   *  request body is capped at 4.5MB on Vercel regardless of any app-level config. */
-  file?: File;
+  /** A file the browser already uploaded directly to Blob storage (see DocumentUploader). */
+  fileRef: ClientFileRef;
   documentType: string;
   category?: string;
   uploadedByType?: string;
@@ -90,35 +86,19 @@ interface ResolvedFile {
 }
 
 async function resolveFile(opts: IngestOptions): Promise<ResolvedFile> {
-  if (opts.fileRef) {
-    const { url, fileName, mimeType, size } = opts.fileRef;
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`Could not fetch uploaded file from storage (${res.status})`);
-    const buffer = Buffer.from(await res.arrayBuffer());
-    const checksum = createHash("sha256").update(buffer).digest("hex");
-    return {
-      fileName: fileName || "upload",
-      mimeType: mimeType || "application/octet-stream",
-      storedPath: url,
-      fileSize: size || buffer.length,
-      checksum,
-      buffer,
-    };
-  }
-
-  if (opts.file) {
-    const saved = await saveUploadedFile(opts.file);
-    return {
-      fileName: opts.file.name || "upload",
-      mimeType: opts.file.type || "application/octet-stream",
-      storedPath: saved.storedPath,
-      fileSize: saved.fileSize,
-      checksum: saved.checksum,
-      buffer: saved.buffer,
-    };
-  }
-
-  throw new Error("ingestDocument requires either fileRef or file");
+  const { url, fileName, mimeType, size } = opts.fileRef;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Could not fetch uploaded file from storage (${res.status})`);
+  const buffer = Buffer.from(await res.arrayBuffer());
+  const checksum = createHash("sha256").update(buffer).digest("hex");
+  return {
+    fileName: fileName || "upload",
+    mimeType: mimeType || "application/octet-stream",
+    storedPath: url,
+    fileSize: size || buffer.length,
+    checksum,
+    buffer,
+  };
 }
 
 export async function ingestDocument(opts: IngestOptions): Promise<IngestResult> {
@@ -136,7 +116,12 @@ export async function ingestDocument(opts: IngestOptions): Promise<IngestResult>
   const extractor = extractorFor(opts.documentType);
   const fields: ExtractedFields = ocr.ok && extractor ? extractor(ocr.text) : {};
   const fieldConfidence = averageConfidence(fields);
-  const overallConfidence = ocr.ok ? Math.min(ocr.confidence, fieldConfidence || ocr.confidence) : 0;
+  // Without an extractor, fieldConfidence is trivially 0 (no fields were ever
+  // attempted) and shouldn't drag down the score — only fold it in when an
+  // extractor actually ran, so a genuine zero (extraction found nothing) is
+  // reflected rather than masked back up to the raw OCR confidence, which
+  // would otherwise show a misleadingly high number next to a NEEDS_REVIEW status.
+  const overallConfidence = ocr.ok ? (extractor ? Math.min(ocr.confidence, fieldConfidence) : ocr.confidence) : 0;
 
   let ocrStatus = "DONE";
   let docStatus = "ACTIVE";
@@ -183,4 +168,14 @@ export async function ingestDocument(opts: IngestOptions): Promise<IngestResult>
 
 export function fieldValue<T = any>(fields: ExtractedFields, key: string): T | null {
   return (fields[key]?.value as T) ?? null;
+}
+
+/**
+ * Date-valued fields (findLabeledDate) hold a real `Date` object, not a
+ * string — use this instead of `fieldValue<string>(...)` + `new Date(...)`,
+ * which only "works" because `new Date(existingDate)` happens to clone it.
+ */
+export function fieldDate(fields: ExtractedFields, key: string): Date | null {
+  const v = fields[key]?.value;
+  return v instanceof Date ? v : null;
 }

@@ -115,11 +115,21 @@ export interface ParsedTransactionLine {
  * `DATE   DESCRIPTION   AMOUNT   [AMOUNT]   [BALANCE]` are treated as
  * transactions. Anything ambiguous is skipped rather than guessed, since a
  * mis-parsed bank line is worse than a missing one (user can add manually).
+ *
+ * Most bank exports print debits/credits as unsigned numbers in separate
+ * columns rather than a single signed amount, so a plain "is this number
+ * negative?" check mislabels debits as credits on those statements. When a
+ * running balance column is present, the direction is instead derived from
+ * the balance delta versus the previous transaction (or the statement's
+ * opening balance for the first line), which is reliable regardless of
+ * column layout. The sign-based heuristic is only used as a last resort when
+ * there's no balance to diff against.
  */
-export function extractBankTransactionLines(text: string): ParsedTransactionLine[] {
+export function extractBankTransactionLines(text: string, openingBalance?: number | null): ParsedTransactionLine[] {
   const lines = text.split(/\n/);
   const results: ParsedTransactionLine[] = [];
   const dateAtStart = /^\s*(\d{1,2}[-/.]\d{1,2}[-/.](?:19|20)?\d{2})/;
+  let previousBalance: number | null = openingBalance ?? null;
 
   for (const line of lines) {
     const dateMatch = line.match(dateAtStart);
@@ -141,22 +151,32 @@ export function extractBankTransactionLines(text: string): ParsedTransactionLine
     let moneyIn = 0;
     let moneyOut = 0;
     let balanceAfter: number | null = null;
+    let confidence: number;
 
-    if (numbers.length >= 3) {
-      // amount, then running balance is typically last
+    if (numbers.length >= 2) {
+      // Last number is the running balance; whichever earlier number the
+      // line carries, the balance delta tells the true direction/magnitude.
       const amt = numbers[0];
-      balanceAfter = numbers[numbers.length - 1];
-      if (amt < 0) moneyOut = Math.abs(amt);
-      else moneyIn = amt;
-    } else if (numbers.length === 2) {
-      const [amt, bal] = numbers;
+      const bal = numbers[numbers.length - 1];
       balanceAfter = bal;
-      if (amt < 0) moneyOut = Math.abs(amt);
-      else moneyIn = amt;
+
+      if (previousBalance !== null) {
+        const delta = bal - previousBalance;
+        if (delta < 0) moneyOut = Math.abs(delta);
+        else moneyIn = delta;
+        confidence = 0.6;
+      } else {
+        if (amt < 0) moneyOut = Math.abs(amt);
+        else moneyIn = amt;
+        confidence = 0.4;
+      }
+      previousBalance = bal;
     } else {
       const amt = numbers[0];
       if (amt < 0) moneyOut = Math.abs(amt);
       else moneyIn = amt;
+      confidence = 0.3;
+      previousBalance = null; // no balance column on this line to keep chaining from
     }
 
     results.push({
@@ -165,7 +185,7 @@ export function extractBankTransactionLines(text: string): ParsedTransactionLine
       moneyIn,
       moneyOut,
       balanceAfter,
-      confidence: numbers.length >= 2 ? 0.55 : 0.3,
+      confidence,
     });
   }
 

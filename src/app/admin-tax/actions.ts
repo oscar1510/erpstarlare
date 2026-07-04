@@ -2,7 +2,7 @@
 
 import { db } from "@/lib/db";
 import { logAudit } from "@/lib/audit";
-import { ingestDocument, fieldValue } from "@/lib/documents";
+import { ingestDocument, fieldValue, fieldDate } from "@/lib/documents";
 import { parseFileRef } from "@/lib/file-refs";
 import { upsertAutoDeadline } from "@/lib/deadlines";
 import { parseFormDate } from "@/lib/format";
@@ -36,10 +36,10 @@ export async function createTaxRecord(formData: FormData) {
       docType: str(formData, "docType") ?? "OTHER",
       taxRefNumber: str(formData, "taxRefNumber") ?? fieldValue<string>(fields, "taxRefNumber"),
       authority: str(formData, "authority") ?? fieldValue<string>(fields, "authority"),
-      submissionDate: parseFormDate(formData.get("submissionDate")) ?? (fieldValue<string>(fields, "submissionDate") ? new Date(fieldValue<string>(fields, "submissionDate")!) : null),
+      submissionDate: parseFormDate(formData.get("submissionDate")) ?? fieldDate(fields, "submissionDate"),
       fiscalPeriod: str(formData, "fiscalPeriod") ?? fieldValue<string>(fields, "fiscalPeriod"),
-      issueDate: parseFormDate(formData.get("issueDate")) ?? (fieldValue<string>(fields, "issueDate") ? new Date(fieldValue<string>(fields, "issueDate")!) : null),
-      nextDueDate: parseFormDate(formData.get("nextDueDate")) ?? (fieldValue<string>(fields, "dueDate") ? new Date(fieldValue<string>(fields, "dueDate")!) : null),
+      issueDate: parseFormDate(formData.get("issueDate")) ?? fieldDate(fields, "issueDate"),
+      nextDueDate: parseFormDate(formData.get("nextDueDate")) ?? fieldDate(fields, "dueDate"),
       status: str(formData, "status") ?? "PENDING",
       documentId,
       notes: str(formData, "notes"),

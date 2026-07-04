@@ -2,7 +2,7 @@
 
 import { db } from "@/lib/db";
 import { logAudit } from "@/lib/audit";
-import { ingestDocument, fieldValue } from "@/lib/documents";
+import { ingestDocument, fieldValue, fieldDate } from "@/lib/documents";
 import { parseFileRef } from "@/lib/file-refs";
 import { extractBankTransactionLines } from "@/lib/ocr/extractors";
 import { redirect } from "next/navigation";
@@ -25,14 +25,16 @@ export async function uploadBankStatement(formData: FormData) {
     uploadedByLabel: "Oscar",
   });
 
+  const openingBalance = fieldValue<number>(fields, "openingBalance");
+
   const statement = await db.bankStatement.create({
     data: {
       bankName: fieldValue<string>(fields, "bankName"),
       accountName: fieldValue<string>(fields, "accountName"),
       iban: fieldValue<string>(fields, "iban"),
-      periodStart: fieldValue<string>(fields, "periodStart") ? new Date(fieldValue<string>(fields, "periodStart")!) : null,
-      periodEnd: fieldValue<string>(fields, "periodEnd") ? new Date(fieldValue<string>(fields, "periodEnd")!) : null,
-      openingBalance: fieldValue<number>(fields, "openingBalance"),
+      periodStart: fieldDate(fields, "periodStart"),
+      periodEnd: fieldDate(fields, "periodEnd"),
+      openingBalance,
       closingBalance: fieldValue<number>(fields, "closingBalance"),
       documentId: document.id,
     },
@@ -42,7 +44,7 @@ export async function uploadBankStatement(formData: FormData) {
 
   // Re-run OCR text through the transaction-line parser (text already stored on the document).
   const text = document.ocrText ?? "";
-  const lines = extractBankTransactionLines(text);
+  const lines = extractBankTransactionLines(text, openingBalance);
   for (const line of lines) {
     if (!line.date) continue;
     await db.bankTransaction.create({

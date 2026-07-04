@@ -2,7 +2,7 @@
 
 import { db } from "@/lib/db";
 import { logAudit } from "@/lib/audit";
-import { ingestDocument, fieldValue } from "@/lib/documents";
+import { ingestDocument, fieldValue, fieldDate } from "@/lib/documents";
 import { parseFileRef } from "@/lib/file-refs";
 import { upsertAutoDeadline } from "@/lib/deadlines";
 import { parseFormDate, parseFormNumber } from "@/lib/format";
@@ -36,13 +36,13 @@ export async function createRentRecord(formData: FormData) {
       landlordName: str(formData, "landlordName") ?? fieldValue<string>(fields, "landlordName"),
       location: str(formData, "location") ?? fieldValue<string>(fields, "location"),
       officeName: str(formData, "officeName"),
-      startDate: parseFormDate(formData.get("startDate")) ?? (fieldValue<string>(fields, "startDate") ? new Date(fieldValue<string>(fields, "startDate")!) : null),
-      endDate: parseFormDate(formData.get("endDate")) ?? (fieldValue<string>(fields, "endDate") ? new Date(fieldValue<string>(fields, "endDate")!) : null),
+      startDate: parseFormDate(formData.get("startDate")) ?? fieldDate(fields, "startDate"),
+      endDate: parseFormDate(formData.get("endDate")) ?? fieldDate(fields, "endDate"),
       monthlyRent: parseFormNumber(formData.get("monthlyRent")) ?? fieldValue<number>(fields, "rentAmount"),
       paymentSchedule: str(formData, "paymentSchedule") ?? fieldValue<string>(fields, "paymentSchedule"),
       deposit: parseFormNumber(formData.get("deposit")) ?? fieldValue<number>(fields, "deposit"),
       noticePeriod: str(formData, "noticePeriod") ?? fieldValue<string>(fields, "noticePeriod"),
-      renewalDate: parseFormDate(formData.get("renewalDate")) ?? (fieldValue<string>(fields, "renewalDate") ? new Date(fieldValue<string>(fields, "renewalDate")!) : null),
+      renewalDate: parseFormDate(formData.get("renewalDate")) ?? fieldDate(fields, "renewalDate"),
       contractDocumentId: documentId,
       notes: str(formData, "notes"),
     },

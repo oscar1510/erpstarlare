@@ -3,7 +3,7 @@
 import { db } from "@/lib/db";
 import { logAudit } from "@/lib/audit";
 import { upsertAutoDeadline, removeAutoDeadline } from "@/lib/deadlines";
-import { ingestDocument, fieldValue } from "@/lib/documents";
+import { ingestDocument, fieldValue, fieldDate } from "@/lib/documents";
 import { parseFileRef } from "@/lib/file-refs";
 import { parseFormDate, parseFormNumber } from "@/lib/format";
 import { redirect } from "next/navigation";
@@ -130,13 +130,13 @@ export async function uploadPersonDocument(personId: string, formData: FormData)
   });
 
   // If the OCR found a visa/expiry date and the person doesn't have one yet, offer it up.
-  const visaExpiry = fieldValue<string>(fields, "visaExpiry") ?? fieldValue<string>(fields, "expiryDate");
+  const visaExpiry = fieldDate(fields, "visaExpiry") ?? fieldDate(fields, "expiryDate");
   if (visaExpiry) {
     const person = await db.person.findUnique({ where: { id: personId } });
     if (person && !person.visaPermitDate) {
       const updated = await db.person.update({
         where: { id: personId },
-        data: { visaPermitDate: new Date(visaExpiry) },
+        data: { visaPermitDate: visaExpiry },
       });
       await syncPersonDeadlines(updated);
     }

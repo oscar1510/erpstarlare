@@ -2,7 +2,7 @@
 
 import { db } from "@/lib/db";
 import { logAudit } from "@/lib/audit";
-import { ingestDocument, fieldValue } from "@/lib/documents";
+import { ingestDocument, fieldValue, fieldDate } from "@/lib/documents";
 import { parseFileRef } from "@/lib/file-refs";
 import { upsertAutoDeadline } from "@/lib/deadlines";
 import { parseFormDate, parseFormNumber } from "@/lib/format";
@@ -28,10 +28,10 @@ export async function createReceivedContract(formData: FormData) {
     data: {
       counterpartyName: str(formData, "counterpartyName") ?? fieldValue<string>(fields, "counterpartyName"),
       contractType: str(formData, "contractType"),
-      signatureDate: parseFormDate(formData.get("signatureDate")) ?? (fieldValue<string>(fields, "signatureDate") ? new Date(fieldValue<string>(fields, "signatureDate")!) : null),
-      startDate: parseFormDate(formData.get("startDate")) ?? (fieldValue<string>(fields, "startDate") ? new Date(fieldValue<string>(fields, "startDate")!) : null),
-      endDate: parseFormDate(formData.get("endDate")) ?? (fieldValue<string>(fields, "endDate") ? new Date(fieldValue<string>(fields, "endDate")!) : null),
-      renewalDate: parseFormDate(formData.get("renewalDate")) ?? (fieldValue<string>(fields, "renewalDate") ? new Date(fieldValue<string>(fields, "renewalDate")!) : null),
+      signatureDate: parseFormDate(formData.get("signatureDate")) ?? fieldDate(fields, "signatureDate"),
+      startDate: parseFormDate(formData.get("startDate")) ?? fieldDate(fields, "startDate"),
+      endDate: parseFormDate(formData.get("endDate")) ?? fieldDate(fields, "endDate"),
+      renewalDate: parseFormDate(formData.get("renewalDate")) ?? fieldDate(fields, "renewalDate"),
       noticePeriod: str(formData, "noticePeriod") ?? fieldValue<string>(fields, "noticePeriod"),
       contractValue: parseFormNumber(formData.get("contractValue")) ?? fieldValue<number>(fields, "contractValue"),
       mainObligations: str(formData, "mainObligations"),

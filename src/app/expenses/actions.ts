@@ -2,7 +2,7 @@
 
 import { db } from "@/lib/db";
 import { logAudit } from "@/lib/audit";
-import { ingestDocument, fieldValue } from "@/lib/documents";
+import { ingestDocument, fieldValue, fieldDate } from "@/lib/documents";
 import { parseFileRefs } from "@/lib/file-refs";
 import { findPossibleDuplicateExpenses } from "@/lib/duplicates";
 import { parseFormDate, parseFormNumber } from "@/lib/format";
@@ -31,8 +31,7 @@ export async function uploadExpenseReceipts(formData: FormData) {
 
     const vendor = fieldValue<string>(fields, "vendor");
     const amount = fieldValue<number>(fields, "amount");
-    const expenseDateRaw = fieldValue<string>(fields, "date");
-    const expenseDate = expenseDateRaw ? new Date(expenseDateRaw) : null;
+    const expenseDate = fieldDate(fields, "date");
 
     const duplicates = await findPossibleDuplicateExpenses({ vendor, amount, expenseDate });
 

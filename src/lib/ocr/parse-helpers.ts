@@ -137,21 +137,30 @@ function toNumber(raw: string): number | null {
 
 /** Look for an amount near a label, e.g. "Total", "Amount Due", "Grand Total". */
 export function findLabeledAmount(text: string, labels: string[]): FieldGuess<number> {
+  let zeroFallback: FieldGuess<number> | null = null;
   for (const label of labels) {
     const re = new RegExp(
       labelBoundary(label) + LABEL_GAP + "(?:AED|USD|EUR|GBP|SAR|\\$|€|£)?\\s*([0-9][0-9,]*\\.?[0-9]{0,2})",
-      "i"
+      "gi"
     );
-    const matches = [...text.matchAll(new RegExp(re, "gi"))];
+    const matches = [...text.matchAll(re)];
     if (matches.length > 0) {
       // Prefer the last match: totals are conventionally the final labeled
       // line on a receipt/invoice (subtotal/tax lines come first).
       const m = matches[matches.length - 1];
       const n = toNumber(m[1]);
+      if (n === 0) {
+        // A labeled zero (e.g. "Amount due 0.00" on an invoice that's
+        // already fully paid) technically matches, but a later label like
+        // "Amount Paid"/"Total" almost always has the real figure — hold
+        // onto it and keep looking rather than settling immediately.
+        zeroFallback ??= { value: n, confidence: 0.85, raw: m[0].trim() };
+        continue;
+      }
       if (n !== null) return { value: n, confidence: 0.85, raw: m[0].trim() };
     }
   }
-  return { value: null, confidence: 0 };
+  return zeroFallback ?? { value: null, confidence: 0 };
 }
 
 /** Fallback: largest currency-like number on the page (low confidence). */
