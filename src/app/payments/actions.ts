@@ -3,6 +3,7 @@
 import { db } from "@/lib/db";
 import { logAudit } from "@/lib/audit";
 import { ingestDocument } from "@/lib/documents";
+import { parseFileRef } from "@/lib/file-refs";
 import { parseFormDate, parseFormNumber } from "@/lib/format";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
@@ -14,10 +15,10 @@ function str(fd: FormData, key: string): string | undefined {
 
 export async function createPayment(formData: FormData) {
   let proofDocumentId: string | undefined;
-  const proofFile = formData.get("proof") as File | null;
-  if (proofFile && proofFile.size > 0) {
+  const proofFileRef = parseFileRef(formData, "proof");
+  if (proofFileRef) {
     const { document } = await ingestDocument({
-      file: proofFile,
+      fileRef: proofFileRef,
       documentType: "OTHER",
       category: "Payment proof",
       uploadedByType: "OSCAR",

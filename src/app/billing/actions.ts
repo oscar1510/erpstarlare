@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { logAudit } from "@/lib/audit";
 import { nextInvoiceNumber } from "@/lib/numbering";
 import { ingestDocument, fieldValue } from "@/lib/documents";
+import { parseFileRef } from "@/lib/file-refs";
 import { sendMail } from "@/lib/mail";
 import { renderInvoicePdf } from "@/lib/pdf/invoice";
 import { parseFormDate, parseFormNumber } from "@/lib/format";
@@ -157,11 +158,11 @@ export async function sendInvoiceEmail(id: string) {
 // ---------------- Stripe invoice -> Starflare invoice conversion ----------------
 
 export async function uploadStripeInvoice(formData: FormData) {
-  const file = formData.get("file") as File | null;
-  if (!file || file.size === 0) throw new Error("No file uploaded");
+  const fileRef = parseFileRef(formData, "file");
+  if (!fileRef) throw new Error("No file uploaded");
 
   const { document } = await ingestDocument({
-    file,
+    fileRef,
     documentType: "STRIPE_INVOICE",
     category: "Stripe invoice (pending conversion)",
     uploadedByType: "OSCAR",

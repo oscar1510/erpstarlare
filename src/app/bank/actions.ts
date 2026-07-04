@@ -3,6 +3,7 @@
 import { db } from "@/lib/db";
 import { logAudit } from "@/lib/audit";
 import { ingestDocument, fieldValue } from "@/lib/documents";
+import { parseFileRef } from "@/lib/file-refs";
 import { extractBankTransactionLines } from "@/lib/ocr/extractors";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
@@ -13,11 +14,11 @@ function str(fd: FormData, key: string): string | undefined {
 }
 
 export async function uploadBankStatement(formData: FormData) {
-  const file = formData.get("file") as File | null;
-  if (!file || file.size === 0) throw new Error("No file uploaded");
+  const fileRef = parseFileRef(formData, "file");
+  if (!fileRef) throw new Error("No file uploaded");
 
   const { document, fields } = await ingestDocument({
-    file,
+    fileRef,
     documentType: "BANK_STATEMENT",
     category: "Bank statement",
     uploadedByType: "OSCAR",
@@ -98,12 +99,12 @@ export async function addBankTransactionManual(formData: FormData) {
 }
 
 export async function uploadBankDocument(formData: FormData) {
-  const file = formData.get("file") as File | null;
-  if (!file || file.size === 0) throw new Error("No file uploaded");
+  const fileRef = parseFileRef(formData, "file");
+  if (!fileRef) throw new Error("No file uploaded");
   const type = str(formData, "type") ?? "OTHER";
 
   const { document } = await ingestDocument({
-    file,
+    fileRef,
     documentType: "BANK_DOCUMENT",
     category: type,
     uploadedByType: "OSCAR",

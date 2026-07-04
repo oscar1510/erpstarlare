@@ -3,6 +3,7 @@
 import { db } from "@/lib/db";
 import { logAudit } from "@/lib/audit";
 import { ingestDocument, fieldValue } from "@/lib/documents";
+import { parseFileRefs } from "@/lib/file-refs";
 import { findPossibleDuplicateExpenses } from "@/lib/duplicates";
 import { parseFormDate, parseFormNumber } from "@/lib/format";
 import { redirect } from "next/navigation";
@@ -14,14 +15,14 @@ function str(fd: FormData, key: string): string | undefined {
 }
 
 export async function uploadExpenseReceipts(formData: FormData) {
-  const files = formData.getAll("file").filter((f): f is File => f instanceof File && f.size > 0);
-  if (files.length === 0) throw new Error("No file uploaded");
+  const fileRefs = parseFileRefs(formData, "file");
+  if (fileRefs.length === 0) throw new Error("No file uploaded");
 
   const createdIds: string[] = [];
 
-  for (const file of files) {
+  for (const fileRef of fileRefs) {
     const { document, fields } = await ingestDocument({
-      file,
+      fileRef,
       documentType: "RECEIPT",
       category: "Quick expense",
       uploadedByType: "OSCAR",
@@ -67,7 +68,7 @@ export async function uploadExpenseReceipts(formData: FormData) {
     section: "Quick Expense Scanner",
     recordType: "Expense",
     recordId: createdIds[0],
-    summary: `Scanned ${files.length} expense receipt${files.length > 1 ? "s" : ""}`,
+    summary: `Scanned ${fileRefs.length} expense receipt${fileRefs.length > 1 ? "s" : ""}`,
     performedByType: "OSCAR",
     performedByLabel: "Oscar",
   });

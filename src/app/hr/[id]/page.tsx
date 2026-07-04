@@ -145,10 +145,10 @@ export default async function PersonDetailPage({ params }: { params: Promise<{ i
           </FormGrid>
           <FormGrid>
             <Field label="Payment receipt">
-              <input type="file" name="receipt" accept="image/*,application/pdf" className="text-sm" />
+              <DocumentUploader name="receipt" label="Upload receipt" />
             </Field>
             <Field label="Manually signed receipt">
-              <input type="file" name="signedReceipt" accept="image/*,application/pdf" className="text-sm" />
+              <DocumentUploader name="signedReceipt" label="Upload signed receipt" />
             </Field>
           </FormGrid>
           <Field label="Notes">
@@ -202,7 +202,7 @@ export default async function PersonDetailPage({ params }: { params: Promise<{ i
             </Field>
           </FormGrid>
           <Field label="Receipt (OCR will read it automatically)">
-            <input type="file" name="receipt" accept="image/*,application/pdf" className="text-sm" />
+            <DocumentUploader name="receipt" label="Upload receipt" />
           </Field>
           <Field label="Notes">
             <TextArea name="notes" />

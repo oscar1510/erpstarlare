@@ -3,6 +3,7 @@
 import { db } from "@/lib/db";
 import { logAudit } from "@/lib/audit";
 import { ingestDocument, fieldValue } from "@/lib/documents";
+import { parseFileRef } from "@/lib/file-refs";
 import { upsertAutoDeadline } from "@/lib/deadlines";
 import { parseFormDate } from "@/lib/format";
 import { redirect } from "next/navigation";
@@ -17,10 +18,10 @@ export async function createTaxRecord(formData: FormData) {
   let documentId: string | undefined;
   let fields: Record<string, any> = {};
 
-  const file = formData.get("file") as File | null;
-  if (file && file.size > 0) {
+  const fileRef = parseFileRef(formData, "file");
+  if (fileRef) {
     const result = await ingestDocument({
-      file,
+      fileRef,
       documentType: "TAX_DOCUMENT",
       category: str(formData, "docType"),
       uploadedByType: "OSCAR",

@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import { db } from "@/lib/db";
 import { PageHeader } from "@/components/ui/Page";
 import { Field, FormGrid, Select, TextArea, TextInput } from "@/components/ui/Field";
+import { DocumentUploader } from "@/components/DocumentUploader";
 import { CURRENCIES, PAYMENT_METHODS, RECONCILIATION_STATUSES, labelize } from "@/lib/constants";
 import { createPayment } from "../actions";
 
@@ -68,7 +69,7 @@ export default async function NewPaymentPage() {
           </Field>
         </FormGrid>
         <Field label="Proof of payment">
-          <input type="file" name="proof" accept="image/*,application/pdf" className="text-sm" />
+          <DocumentUploader name="proof" label="Upload proof" />
         </Field>
         <Field label="Notes">
           <TextArea name="notes" rows={2} />

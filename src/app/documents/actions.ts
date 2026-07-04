@@ -2,6 +2,7 @@
 
 import { db } from "@/lib/db";
 import { ingestDocument } from "@/lib/documents";
+import { parseFileRefs } from "@/lib/file-refs";
 import { logAudit } from "@/lib/audit";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
@@ -12,13 +13,13 @@ function str(fd: FormData, key: string): string | undefined {
 }
 
 export async function uploadGenericDocument(formData: FormData) {
-  const files = formData.getAll("file").filter((f): f is File => f instanceof File && f.size > 0);
-  if (files.length === 0) throw new Error("No file uploaded");
+  const fileRefs = parseFileRefs(formData, "file");
+  if (fileRefs.length === 0) throw new Error("No file uploaded");
 
   let lastId = "";
-  for (const file of files) {
+  for (const fileRef of fileRefs) {
     const { document } = await ingestDocument({
-      file,
+      fileRef,
       documentType: str(formData, "documentType") ?? "OTHER",
       category: str(formData, "category"),
       uploadedByType: "OSCAR",

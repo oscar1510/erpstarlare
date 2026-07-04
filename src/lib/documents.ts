@@ -1,6 +1,8 @@
+import { createHash } from "crypto";
 import { db } from "./db";
 import { saveUploadedFile } from "./storage";
 import { runOcr } from "./ocr/engine";
+import { ClientFileRef } from "./file-refs";
 import {
   averageConfidence,
   extractBankStatementFields,
@@ -43,7 +45,11 @@ function extractorFor(documentType: string): ((text: string) => ExtractedFields)
 }
 
 export interface IngestOptions {
-  file: File;
+  /** Preferred path: a file the browser already uploaded directly to Blob storage (see DocumentUploader). */
+  fileRef?: ClientFileRef;
+  /** Legacy path: a raw File, uploaded to storage here. Only safe for small files — a Server Action's
+   *  request body is capped at 4.5MB on Vercel regardless of any app-level config. */
+  file?: File;
   documentType: string;
   category?: string;
   uploadedByType?: string;
@@ -74,17 +80,58 @@ export interface IngestResult {
   duplicateDocuments: { id: string; fileName: string; documentType: string; createdAt: Date }[];
 }
 
+interface ResolvedFile {
+  fileName: string;
+  mimeType: string;
+  storedPath: string;
+  fileSize: number;
+  checksum: string;
+  buffer: Buffer;
+}
+
+async function resolveFile(opts: IngestOptions): Promise<ResolvedFile> {
+  if (opts.fileRef) {
+    const { url, fileName, mimeType, size } = opts.fileRef;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`Could not fetch uploaded file from storage (${res.status})`);
+    const buffer = Buffer.from(await res.arrayBuffer());
+    const checksum = createHash("sha256").update(buffer).digest("hex");
+    return {
+      fileName: fileName || "upload",
+      mimeType: mimeType || "application/octet-stream",
+      storedPath: url,
+      fileSize: size || buffer.length,
+      checksum,
+      buffer,
+    };
+  }
+
+  if (opts.file) {
+    const saved = await saveUploadedFile(opts.file);
+    return {
+      fileName: opts.file.name || "upload",
+      mimeType: opts.file.type || "application/octet-stream",
+      storedPath: saved.storedPath,
+      fileSize: saved.fileSize,
+      checksum: saved.checksum,
+      buffer: saved.buffer,
+    };
+  }
+
+  throw new Error("ingestDocument requires either fileRef or file");
+}
+
 export async function ingestDocument(opts: IngestOptions): Promise<IngestResult> {
-  const saved = await saveUploadedFile(opts.file);
+  const resolved = await resolveFile(opts);
 
   const duplicateDocuments = await db.document.findMany({
-    where: { checksum: saved.checksum },
+    where: { checksum: resolved.checksum },
     select: { id: true, fileName: true, documentType: true, createdAt: true },
     orderBy: { createdAt: "desc" },
     take: 5,
   });
 
-  const ocr = await runOcr(saved.buffer, opts.file.type || "application/octet-stream");
+  const ocr = await runOcr(resolved.buffer, resolved.mimeType);
 
   const extractor = extractorFor(opts.documentType);
   const fields: ExtractedFields = ocr.ok && extractor ? extractor(ocr.text) : {};
@@ -103,11 +150,11 @@ export async function ingestDocument(opts: IngestOptions): Promise<IngestResult>
 
   const document = await db.document.create({
     data: {
-      fileName: opts.file.name || "upload",
-      storedPath: saved.storedPath,
-      mimeType: opts.file.type || "application/octet-stream",
-      fileSize: saved.fileSize,
-      checksum: saved.checksum,
+      fileName: resolved.fileName,
+      storedPath: resolved.storedPath,
+      mimeType: resolved.mimeType,
+      fileSize: resolved.fileSize,
+      checksum: resolved.checksum,
       documentType: opts.documentType,
       category: opts.category,
       ocrStatus,

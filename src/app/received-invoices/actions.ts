@@ -3,6 +3,7 @@
 import { db } from "@/lib/db";
 import { logAudit } from "@/lib/audit";
 import { ingestDocument } from "@/lib/documents";
+import { parseFileRef } from "@/lib/file-refs";
 import { upsertAutoDeadline, removeAutoDeadline } from "@/lib/deadlines";
 import { parseFormDate, parseFormNumber } from "@/lib/format";
 import { redirect } from "next/navigation";
@@ -14,11 +15,11 @@ function str(fd: FormData, key: string): string | undefined {
 }
 
 export async function uploadReceivedInvoice(formData: FormData) {
-  const file = formData.get("file") as File | null;
-  if (!file || file.size === 0) throw new Error("No file uploaded");
+  const fileRef = parseFileRef(formData, "file");
+  if (!fileRef) throw new Error("No file uploaded");
 
   const { document } = await ingestDocument({
-    file,
+    fileRef,
     documentType: "RECEIVED_INVOICE",
     category: "Supplier invoice (pending review)",
     uploadedByType: "OSCAR",

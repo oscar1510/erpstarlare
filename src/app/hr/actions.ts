@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { logAudit } from "@/lib/audit";
 import { upsertAutoDeadline, removeAutoDeadline } from "@/lib/deadlines";
 import { ingestDocument, fieldValue } from "@/lib/documents";
+import { parseFileRef } from "@/lib/file-refs";
 import { parseFormDate, parseFormNumber } from "@/lib/format";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
@@ -116,11 +117,11 @@ export async function updatePerson(id: string, formData: FormData) {
 }
 
 export async function uploadPersonDocument(personId: string, formData: FormData) {
-  const file = formData.get("file") as File | null;
-  if (!file || file.size === 0) return;
+  const fileRef = parseFileRef(formData, "file");
+  if (!fileRef) return;
 
   const { document, fields } = await ingestDocument({
-    file,
+    fileRef,
     documentType: "HR_DOCUMENT",
     category: str(formData, "category") ?? "Other",
     uploadedByType: "OSCAR",
@@ -149,10 +150,10 @@ export async function addCompensationPayment(personId: string, formData: FormDat
   let receiptDocumentId: string | undefined;
   let signedReceiptDocumentId: string | undefined;
 
-  const receiptFile = formData.get("receipt") as File | null;
-  if (receiptFile && receiptFile.size > 0) {
+  const receiptFileRef = parseFileRef(formData, "receipt");
+  if (receiptFileRef) {
     const { document } = await ingestDocument({
-      file: receiptFile,
+      fileRef: receiptFileRef,
       documentType: "HR_DOCUMENT",
       category: "Payment receipt",
       uploadedByType: "OSCAR",
@@ -162,10 +163,10 @@ export async function addCompensationPayment(personId: string, formData: FormDat
     receiptDocumentId = document.id;
   }
 
-  const signedFile = formData.get("signedReceipt") as File | null;
-  if (signedFile && signedFile.size > 0) {
+  const signedFileRef = parseFileRef(formData, "signedReceipt");
+  if (signedFileRef) {
     const { document } = await ingestDocument({
-      file: signedFile,
+      fileRef: signedFileRef,
       documentType: "HR_DOCUMENT",
       category: "Signed payment receipt",
       uploadedByType: "OSCAR",
@@ -238,10 +239,10 @@ export async function addReimbursement(personId: string, formData: FormData) {
   let documentId: string | undefined;
   let fields: Record<string, any> = {};
 
-  const receiptFile = formData.get("receipt") as File | null;
-  if (receiptFile && receiptFile.size > 0) {
+  const receiptFileRef = parseFileRef(formData, "receipt");
+  if (receiptFileRef) {
     const result = await ingestDocument({
-      file: receiptFile,
+      fileRef: receiptFileRef,
       documentType: "RECEIPT",
       category: "Reimbursement receipt",
       uploadedByType: "OSCAR",

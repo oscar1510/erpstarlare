@@ -3,6 +3,7 @@
 import { db } from "@/lib/db";
 import { logAudit } from "@/lib/audit";
 import { ingestDocument, fieldValue } from "@/lib/documents";
+import { parseFileRef } from "@/lib/file-refs";
 import { upsertAutoDeadline } from "@/lib/deadlines";
 import { parseFormDate, parseFormNumber } from "@/lib/format";
 import { redirect } from "next/navigation";
@@ -16,9 +17,9 @@ function str(fd: FormData, key: string): string | undefined {
 export async function createReceivedContract(formData: FormData) {
   let documentId: string | undefined;
   let fields: Record<string, any> = {};
-  const file = formData.get("file") as File | null;
-  if (file && file.size > 0) {
-    const result = await ingestDocument({ file, documentType: "RECEIVED_CONTRACT", category: "Received contract", uploadedByType: "OSCAR", uploadedByLabel: "Oscar" });
+  const fileRef = parseFileRef(formData, "file");
+  if (fileRef) {
+    const result = await ingestDocument({ fileRef, documentType: "RECEIVED_CONTRACT", category: "Received contract", uploadedByType: "OSCAR", uploadedByLabel: "Oscar" });
     documentId = result.document.id;
     fields = result.fields;
   }
@@ -62,9 +63,9 @@ export async function createReceivedContract(formData: FormData) {
 
 export async function createSentContract(formData: FormData) {
   let documentId: string | undefined;
-  const file = formData.get("file") as File | null;
-  if (file && file.size > 0) {
-    const result = await ingestDocument({ file, documentType: "SENT_CONTRACT", category: "Sent contract", uploadedByType: "OSCAR", uploadedByLabel: "Oscar" });
+  const fileRef = parseFileRef(formData, "file");
+  if (fileRef) {
+    const result = await ingestDocument({ fileRef, documentType: "SENT_CONTRACT", category: "Sent contract", uploadedByType: "OSCAR", uploadedByLabel: "Oscar" });
     documentId = result.document.id;
   }
 
@@ -111,9 +112,9 @@ export async function createSentContract(formData: FormData) {
 
 export async function createPolicy(formData: FormData) {
   let documentId: string | undefined;
-  const file = formData.get("file") as File | null;
-  if (file && file.size > 0) {
-    const result = await ingestDocument({ file, documentType: "POLICY", category: "Platform policy", uploadedByType: "OSCAR", uploadedByLabel: "Oscar" });
+  const fileRef = parseFileRef(formData, "file");
+  if (fileRef) {
+    const result = await ingestDocument({ fileRef, documentType: "POLICY", category: "Platform policy", uploadedByType: "OSCAR", uploadedByLabel: "Oscar" });
     documentId = result.document.id;
   }
 
