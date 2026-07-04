@@ -18,6 +18,13 @@ function blobConfigured() {
   return Boolean(process.env.BLOB_READ_WRITE_TOKEN);
 }
 
+// Vercel sets this in every deployed environment (production, preview, and
+// `vercel dev`). Its filesystem is read-only outside /tmp, so the local-disk
+// fallback below would crash there — better to fail with a clear message.
+function runningOnVercel() {
+  return Boolean(process.env.VERCEL);
+}
+
 const LOCAL_STORAGE_ROOT = path.join(process.cwd(), "storage", "uploads");
 
 /**
@@ -44,6 +51,14 @@ export async function saveUploadedFile(file: File): Promise<SavedFile> {
       contentType: file.type || "application/octet-stream",
     });
     return { storedPath: blob.url, checksum, fileSize: buffer.length, buffer };
+  }
+
+  if (runningOnVercel()) {
+    throw new Error(
+      "No Blob store connected: uploads need Vercel Blob storage in this deployment. " +
+        "Go to your Vercel project's Storage tab, create a Blob store, and connect it to this project " +
+        "(this injects BLOB_READ_WRITE_TOKEN automatically), then redeploy."
+    );
   }
 
   const absoluteDir = path.join(LOCAL_STORAGE_ROOT, path.dirname(pathname));
