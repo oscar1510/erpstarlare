@@ -363,15 +363,25 @@ export function suggestExpenseCategory(text: string): FieldGuess<string> {
 }
 
 export function findVendorName(text: string): FieldGuess<string> {
-  // Heuristic: the first non-empty, reasonably short line that isn't a date/amount/label
+  // Heuristic: the merchant name is almost always one of the first few lines of
+  // a receipt — the first line that reads like a name rather than a header, an
+  // amount, a contact detail, or OCR noise. We scan a bit deeper and reject
+  // more junk than before, since the logo/name line is often preceded by
+  // scanner artefacts (e.g. an mangled "network>" line captured verbatim).
+  const startLabel = /^(invoice|receipt|tax invoice|simplified|date|time|total|sub[\s-]?total|amount|balance|vat|tax|trn|no\.?|ref|order|table|qty|cash|card|change|tel|phone|fax|mob|bill to|www\.|http)/i;
+  const junk = /[<>@{}]|www\.|https?:|\.com|\.ae\b/i; // markup / OCR noise / URLs are never the merchant name
   const lines = text
     .split(/\n/)
     .map((l) => l.trim())
-    .filter((l) => l.length > 1 && l.length < 60);
-  for (const line of lines.slice(0, 8)) {
-    if (/^(invoice|receipt|date|total|amount|vat|tax|no\.|#|tel|phone|www\.|http)/i.test(line)) continue;
-    if (/^[0-9\s.,:/-]+$/.test(line)) continue;
-    return { value: line, confidence: 0.4 };
+    .filter((l) => l.length > 1 && l.length <= 42);
+
+  for (const line of lines.slice(0, 12)) {
+    if (startLabel.test(line)) continue;
+    if (junk.test(line)) continue;
+    if (/^[0-9\s.,:/'"()#*+_=-]+$/.test(line)) continue; // no letters at all
+    const letters = (line.match(/[A-Za-z]/g) || []).length;
+    if (letters < 3 || letters / line.length < 0.4) continue; // too few letters to be a name
+    return { value: line, confidence: 0.45 };
   }
   return { value: null, confidence: 0 };
 }
