@@ -2,6 +2,7 @@ import { createHash } from "crypto";
 import { db } from "./db";
 import { runOcr } from "./ocr/engine";
 import { ClientFileRef } from "./file-refs";
+import { OcrWord } from "./ocr/parse-helpers";
 import {
   averageConfidence,
   extractBankStatementFields,
@@ -19,7 +20,7 @@ import { logAudit } from "./audit";
 
 const LOW_CONFIDENCE_THRESHOLD = 0.5;
 
-function extractorFor(documentType: string): ((text: string) => ExtractedFields) | null {
+function extractorFor(documentType: string): ((text: string, words?: OcrWord[]) => ExtractedFields) | null {
   switch (documentType) {
     case "RECEIPT":
       return extractReceiptFields;
@@ -114,7 +115,7 @@ export async function ingestDocument(opts: IngestOptions): Promise<IngestResult>
   const ocr = await runOcr(resolved.buffer, resolved.mimeType);
 
   const extractor = extractorFor(opts.documentType);
-  const fields: ExtractedFields = ocr.ok && extractor ? extractor(ocr.text) : {};
+  const fields: ExtractedFields = ocr.ok && extractor ? extractor(ocr.text, ocr.words) : {};
   const fieldConfidence = averageConfidence(fields);
   // Without an extractor, fieldConfidence is trivially 0 (no fields were ever
   // attempted) and shouldn't drag down the score — only fold it in when an

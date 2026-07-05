@@ -1,5 +1,6 @@
 import path from "path";
 import { createWorker, OEM } from "tesseract.js";
+import type { OcrWord } from "./parse-helpers";
 
 export interface OcrResult {
   text: string;
@@ -7,6 +8,9 @@ export interface OcrResult {
   engine: "tesseract" | "pdf-text" | "pdf-rasterized" | "none";
   ok: boolean;
   error?: string;
+  /** Word bounding boxes, when the OCR path produces them (image + rasterized PDF).
+   *  Enables column-aware extraction of two-column layouts like Stripe's "Bill to". */
+  words?: OcrWord[];
 }
 
 const IMAGE_MIME_RE = /^image\//;
@@ -28,7 +32,7 @@ const TESSDATA_PATH = path.join(process.cwd(), "assets", "tessdata");
  * rejection so a broken OCR run degrades to "needs review" instead of
  * taking down the request.
  */
-async function runTesseractOnImage(buffer: Buffer): Promise<{ text: string; confidence: number }> {
+async function runTesseractOnImage(buffer: Buffer): Promise<{ text: string; confidence: number; words: OcrWord[] }> {
   return new Promise((resolve, reject) => {
     const onUncaught = (err: Error) => {
       cleanup();
@@ -44,9 +48,18 @@ async function runTesseractOnImage(buffer: Buffer): Promise<{ text: string; conf
         gzip: true,
       });
       try {
-        const { data } = await worker.recognize(buffer);
+        // `blocks: true` is required for tesseract.js to populate per-word
+        // bounding boxes (data.words), which column-aware extraction needs.
+        const { data } = await worker.recognize(buffer, {}, { blocks: true });
+        const words: OcrWord[] = (data.words ?? []).map((w: any) => ({
+          text: w.text,
+          x0: w.bbox.x0,
+          y0: w.bbox.y0,
+          x1: w.bbox.x1,
+          y1: w.bbox.y1,
+        }));
         cleanup();
-        resolve({ text: data.text, confidence: (data.confidence ?? 60) / 100 });
+        resolve({ text: data.text, confidence: (data.confidence ?? 60) / 100, words });
       } finally {
         await worker.terminate().catch(() => {});
       }
@@ -104,7 +117,7 @@ const MAX_RASTERIZED_PAGES = 8;
  * flattening a rendered page to a single image, which some invoicing tools
  * do despite the source being genuinely text-based.
  */
-async function rasterizeAndOcrPdf(buffer: Buffer): Promise<{ text: string; confidence: number }> {
+async function rasterizeAndOcrPdf(buffer: Buffer): Promise<{ text: string; confidence: number; words: OcrWord[] }> {
   const { getDocument } = await import("pdfjs-dist/legacy/build/pdf.mjs");
   const { createCanvas } = await import("@napi-rs/canvas");
 
@@ -113,6 +126,8 @@ async function rasterizeAndOcrPdf(buffer: Buffer): Promise<{ text: string; confi
 
   let combinedText = "";
   const confidences: number[] = [];
+  const allWords: OcrWord[] = [];
+  let yOffset = 0; // stack each page below the previous so word Y coords stay unique across pages
 
   for (let i = 1; i <= pageCount; i++) {
     const page = await doc.getPage(i);
@@ -123,13 +138,15 @@ async function rasterizeAndOcrPdf(buffer: Buffer): Promise<{ text: string; confi
     await page.render({ canvasContext: context as unknown as CanvasRenderingContext2D, viewport, canvas: canvas as unknown as HTMLCanvasElement }).promise;
 
     const pngBuffer = canvas.toBuffer("image/png");
-    const { text, confidence } = await runTesseractOnImage(pngBuffer);
+    const { text, confidence, words } = await runTesseractOnImage(pngBuffer);
     combinedText += text + "\n";
     confidences.push(confidence);
+    for (const w of words) allWords.push({ ...w, y0: w.y0 + yOffset, y1: w.y1 + yOffset });
+    yOffset += viewport.height;
   }
 
   const confidence = confidences.length ? confidences.reduce((a, b) => a + b, 0) / confidences.length : 0;
-  return { text: combinedText.trim(), confidence };
+  return { text: combinedText.trim(), confidence, words: allWords };
 }
 
 /**
@@ -143,8 +160,8 @@ async function rasterizeAndOcrPdf(buffer: Buffer): Promise<{ text: string; confi
 export async function runOcr(buffer: Buffer, mimeType: string): Promise<OcrResult> {
   try {
     if (IMAGE_MIME_RE.test(mimeType)) {
-      const { text, confidence } = await runTesseractOnImage(buffer);
-      return { text, confidence, engine: "tesseract", ok: text.trim().length > 0 };
+      const { text, confidence, words } = await runTesseractOnImage(buffer);
+      return { text, confidence, engine: "tesseract", ok: text.trim().length > 0, words };
     }
 
     if (mimeType === "application/pdf") {
@@ -161,7 +178,7 @@ export async function runOcr(buffer: Buffer, mimeType: string): Promise<OcrResul
         return null;
       });
       if (rasterized && rasterized.text.trim().length > 0) {
-        return { text: rasterized.text, confidence: rasterized.confidence, engine: "pdf-rasterized", ok: true };
+        return { text: rasterized.text, confidence: rasterized.confidence, engine: "pdf-rasterized", ok: true, words: rasterized.words };
       }
 
       return {

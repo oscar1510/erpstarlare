@@ -1,5 +1,7 @@
 import {
   FieldGuess,
+  OcrWord,
+  findBilledToClient,
   findCurrency,
   findEmail,
   findEmiratesId,
@@ -70,11 +72,18 @@ export function extractReceivedInvoiceFields(text: string): ExtractedFields {
   };
 }
 
-export function extractStripeInvoiceFields(text: string): ExtractedFields {
+export function extractStripeInvoiceFields(text: string, words?: OcrWord[]): ExtractedFields {
   const amount = findLabeledAmount(text, ["Amount Due", "Amount Paid", "Total", "Total Due"]);
   const paidMatch = /\bpaid\b/i.test(text) && !/\bnot\s+paid\b/i.test(text);
+  // Prefer column-aware extraction from word boxes (handles Stripe's two-column
+  // "Bill to" block); fall back to the flat-text label match when boxes aren't
+  // available (e.g. a born-digital PDF read via its text layer).
+  const clientFromColumn = findBilledToClient(words);
   return {
-    clientName: findLabeledText(text, ["Bill to", "Customer", "Billed to"], 60),
+    clientName:
+      clientFromColumn.value !== null
+        ? clientFromColumn
+        : findLabeledText(text, ["Bill to", "Customer", "Billed to"], 60),
     clientEmail: findEmail(text),
     amount: amount.value !== null ? amount : findLargestAmount(text),
     currency: findCurrency(text),

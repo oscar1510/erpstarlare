@@ -8,6 +8,67 @@ export interface FieldGuess<T = string> {
   raw?: string;
 }
 
+/** A single OCR'd word with its pixel bounding box, used for column-aware extraction. */
+export interface OcrWord {
+  text: string;
+  x0: number;
+  y0: number;
+  x1: number;
+  y1: number;
+}
+
+/**
+ * Two-column invoice headers (Stripe puts the client's "Bill to" block in a
+ * right-hand column right next to the sender's own address) get flattened by
+ * line-based OCR: reading each row left-to-right glues the client's name onto
+ * the end of the sender's address line, so plain text can't separate them
+ * (this is exactly why "Bill to" came back empty/wrong before). Word bounding
+ * boxes can: the "Bill to" label marks the left edge of the client column, and
+ * the client name is the first text line below it that starts at that x.
+ */
+export function findBilledToClient(words: OcrWord[] | undefined): FieldGuess<string> {
+  if (!words || words.length === 0) return { value: null, confidence: 0 };
+  const norm = (s: string) => s.toLowerCase().replace(/[^a-z]/g, "");
+
+  let header: OcrWord | null = null;
+  for (let i = 0; i < words.length; i++) {
+    const t = norm(words[i].text);
+    if (t === "billto" || t === "billedto") {
+      header = words[i];
+      break;
+    }
+    if (t === "bill" || t === "billed") {
+      const next = words[i + 1];
+      if (next && norm(next.text) === "to" && Math.abs(next.y0 - words[i].y0) < 15) {
+        header = words[i];
+        break;
+      }
+    }
+  }
+  if (!header) return { value: null, confidence: 0 };
+
+  // Everything in the client column (at/right of the label) and below its line.
+  const colLeft = header.x0 - 40; // small tolerance for OCR jitter / left-edge alignment
+  const belowY = header.y0 + 12;
+  const colWords = words
+    .filter((w) => w.x0 >= colLeft && w.y0 >= belowY)
+    .sort((a, b) => a.y0 - b.y0 || a.x0 - b.x0);
+  if (colWords.length === 0) return { value: null, confidence: 0 };
+
+  // The first line below the header (a y-cluster) is the client name.
+  const firstY = colWords[0].y0;
+  const name = colWords
+    .filter((w) => Math.abs(w.y0 - firstY) < 18)
+    .sort((a, b) => a.x0 - b.x0)
+    .map((w) => w.text)
+    .join(" ")
+    .trim();
+
+  // Reject lines that are obviously an address/phone/email rather than a name.
+  if (name.length < 2 || /^[+\d]/.test(name) || /@/.test(name)) return { value: null, confidence: 0 };
+  return { value: name.slice(0, 60), confidence: 0.75 };
+}
+
 const MONTHS: Record<string, number> = {
   jan: 0, january: 0, feb: 1, february: 1, mar: 2, march: 2, apr: 3, april: 3,
   may: 4, jun: 5, june: 5, jul: 6, july: 6, aug: 7, august: 7, sep: 8, sept: 8,
