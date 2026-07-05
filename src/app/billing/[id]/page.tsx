@@ -18,6 +18,9 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
     ? await db.document.findUnique({ where: { id: invoice.sourceStripeDocumentId } })
     : null;
 
+  // The branded Starflare document (new invoice layout) linked to this invoice, if any.
+  const brandedDoc = await db.quotation.findFirst({ where: { invoiceId: id } });
+
   async function changeStatus(fd: FormData) {
     "use server";
     await updateInvoiceStatus(id, fd.get("status") as string);
@@ -35,9 +38,15 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
         description={invoice.clientNameSnapshot ?? undefined}
         actions={
           <>
-            <a href={`/billing/${id}/pdf`} target="_blank" className="btn-secondary">
-              📄 Export PDF
-            </a>
+            {brandedDoc ? (
+              <a href={`/billing/documents/${brandedDoc.id}`} className="btn-secondary">
+                📄 Branded document
+              </a>
+            ) : (
+              <a href={`/billing/${id}/pdf`} target="_blank" className="btn-secondary">
+                📄 Export PDF
+              </a>
+            )}
             <form action={emailInvoice}>
               <button className="btn-primary" type="submit">✉️ Send to client</button>
             </form>
