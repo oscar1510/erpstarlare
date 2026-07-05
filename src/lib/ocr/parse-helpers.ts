@@ -139,15 +139,23 @@ function labelBoundary(label: string): string {
 }
 
 /**
- * The gap allowed between a label and its value: an optional colon, same-line
- * spaces, and at most *one* line break. `\s` alone matches newlines too, so
- * without this a label sitting alone at the end of a line (common right
- * before a blank line in two-column layouts, e.g. "Bill to" over a name/
- * address block) would happily skip a blank line and start capturing from
+ * The gap allowed between a label and its value: same-line spaces around an
+ * optional colon, and at most *one* line break. `\s` alone matches newlines
+ * too, so without this a label sitting alone at the end of a line (common
+ * right before a blank line in two-column layouts, e.g. "Bill to" over a
+ * name/address block) would happily skip a blank line and start capturing from
  * whatever unrelated text comes after it — confirmed against a real invoice
  * where "Bill to" ended up capturing the *other* party's address instead.
+ *
+ * The leading `[ \t]*` before the colon matters for terminal receipts that
+ * write "Amount : 392.00" (space before the colon), not just "Amount:".
  */
-const LABEL_GAP = ":?[ \\t]*\\n?[ \\t]*";
+const LABEL_GAP = "[ \\t]*:?[ \\t]*\\n?[ \\t]*";
+
+// Optional currency token that can sit between a label's colon and the number,
+// e.g. "Amount: AED 392" or "Amount : Đ 392.00" — UAE point-of-sale receipts
+// print the dirham glyph, which OCR routinely mangles into a stray D/Đ/B.
+const CURRENCY_PREFIX = "(?:AED|AED\\.?|Dhs?\\.?|DH|SAR|USD|EUR|GBP|\\$|€|£|₹|Đ|[DB])?[ \\t]*";
 
 /** Find the best-matching date near a label (e.g. "Invoice Date", "Due Date"). */
 export function findLabeledDate(text: string, labels: string[]): FieldGuess<Date> {
@@ -201,7 +209,7 @@ export function findLabeledAmount(text: string, labels: string[]): FieldGuess<nu
   let zeroFallback: FieldGuess<number> | null = null;
   for (const label of labels) {
     const re = new RegExp(
-      labelBoundary(label) + LABEL_GAP + "(?:AED|USD|EUR|GBP|SAR|\\$|€|£)?\\s*([0-9][0-9,]*\\.?[0-9]{0,2})",
+      labelBoundary(label) + LABEL_GAP + CURRENCY_PREFIX + "([0-9][0-9,]*\\.?[0-9]{0,2})",
       "gi"
     );
     const matches = [...text.matchAll(re)];
