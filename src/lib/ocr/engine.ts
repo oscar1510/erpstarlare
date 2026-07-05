@@ -14,6 +14,27 @@ export interface OcrResult {
 }
 
 const IMAGE_MIME_RE = /^image\//;
+const HEIC_MIME_RE = /^image\/(heic|heif)/i;
+
+/**
+ * iPhones export photos as HEIC/HEIF, which neither tesseract.js nor the
+ * canvas rasterizer can decode — an uploaded HEIC receipt would OCR to
+ * nothing. libheif-js (pure WASM, no native binary) decodes it to a PNG
+ * buffer first. Detected by mime type and by the ISO-BMFF `ftyp` brand, since
+ * browsers sometimes upload HEIC with a generic or missing content type.
+ */
+function looksLikeHeic(buffer: Buffer): boolean {
+  if (buffer.length < 12) return false;
+  if (buffer.toString("ascii", 4, 8) !== "ftyp") return false;
+  const brand = buffer.toString("ascii", 8, 12).toLowerCase();
+  return ["heic", "heix", "heif", "hevc", "mif1", "msf1", "heim", "heis"].includes(brand);
+}
+
+async function decodeHeicToPng(buffer: Buffer): Promise<Buffer> {
+  const convert = (await import("heic-convert")).default;
+  const output = await convert({ buffer: new Uint8Array(buffer), format: "PNG" });
+  return Buffer.from(output);
+}
 
 // Bundled locally so OCR never depends on an external CDN at request time
 // (serverless functions get one cold-start fetch of the CDN copy otherwise,
@@ -159,8 +180,15 @@ async function rasterizeAndOcrPdf(buffer: Buffer): Promise<{ text: string; confi
  */
 export async function runOcr(buffer: Buffer, mimeType: string): Promise<OcrResult> {
   try {
-    if (IMAGE_MIME_RE.test(mimeType)) {
-      const { text, confidence, words } = await runTesseractOnImage(buffer);
+    if (IMAGE_MIME_RE.test(mimeType) || looksLikeHeic(buffer)) {
+      let imageBuffer = buffer;
+      if (HEIC_MIME_RE.test(mimeType) || looksLikeHeic(buffer)) {
+        imageBuffer = await decodeHeicToPng(buffer).catch((err) => {
+          console.error("[OCR] HEIC decode failed:", err);
+          return buffer; // fall through and let tesseract try (will just yield no text)
+        });
+      }
+      const { text, confidence, words } = await runTesseractOnImage(imageBuffer);
       return { text, confidence, engine: "tesseract", ok: text.trim().length > 0, words };
     }
 

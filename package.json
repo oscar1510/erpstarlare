@@ -19,6 +19,7 @@
     "@vercel/blob": "^2.5.0",
     "date-fns": "^4.1.0",
     "exceljs": "^4.4.0",
+    "heic-convert": "^2.1.0",
     "iconv-lite": "^0.7.3",
     "next": "^15.1.4",
     "nodemailer": "^6.9.16",
