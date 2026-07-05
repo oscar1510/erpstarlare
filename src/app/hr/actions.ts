@@ -308,11 +308,92 @@ export async function addReimbursement(personId: string, formData: FormData) {
 }
 
 export async function updateReimbursementStatus(id: string, status: string) {
-  const reimbursement = await db.reimbursement.update({ where: { id }, data: { status } });
-  revalidatePath(`/hr/${reimbursement.personId}`);
+  const before = await db.reimbursement.findUniqueOrThrow({ where: { id } });
+  const person = await db.person.findUnique({ where: { id: before.personId } });
+  const name = person ? `${person.firstName} ${person.lastName}` : "person";
+  const updated = await db.reimbursement.update({ where: { id }, data: { status } });
+
+  // Marking PAID is what actually books the expense into the ledger (and
+  // therefore into KPI totals). Creating it PAID up front already does this in
+  // addReimbursement; doing it here covers the far more common flow of adding
+  // it as SUBMITTED and flipping the status later.
+  if (status === "PAID" && !before.ledgerEntryId) {
+    const ledgerEntry = await db.ledgerEntry.create({
+      data: {
+        date: updated.expenseDate ?? new Date(),
+        type: "EXPENSE",
+        category: updated.category ?? "Reimbursement",
+        amount: updated.amount,
+        currency: updated.currency,
+        personId: updated.personId,
+        sourceModule: "Reimbursement",
+        sourceId: updated.id,
+        notes: `Reimbursement for ${name}`,
+      },
+    });
+    await db.reimbursement.update({ where: { id }, data: { ledgerEntryId: ledgerEntry.id } });
+    await removeAutoDeadline("Reimbursement", id, "Reimbursement Due");
+  } else if (status !== "PAID" && before.ledgerEntryId) {
+    // Reversing out of PAID must also pull the expense back out of the ledger,
+    // otherwise KPI keeps counting money that's no longer considered paid.
+    await db.reimbursement.update({ where: { id }, data: { ledgerEntryId: null } });
+    await db.ledgerEntry.delete({ where: { id: before.ledgerEntryId } }).catch(() => {});
+  }
+
+  await logAudit({
+    action: "updated",
+    section: "HR",
+    recordType: "Reimbursement",
+    recordId: id,
+    summary: `Reimbursement for ${name}: ${before.status} → ${status}`,
+    performedByType: "OSCAR",
+    performedByLabel: "Oscar",
+  });
+
+  revalidatePath(`/hr/${before.personId}`);
+  revalidatePath("/ledger");
+  revalidatePath("/");
 }
 
 export async function updateCompensationStatus(id: string, status: string) {
-  const payment = await db.compensationPayment.update({ where: { id }, data: { status } });
-  revalidatePath(`/hr/${payment.personId}`);
+  const before = await db.compensationPayment.findUniqueOrThrow({ where: { id } });
+  const person = await db.person.findUnique({ where: { id: before.personId } });
+  const name = person ? `${person.firstName} ${person.lastName}` : "person";
+  const updated = await db.compensationPayment.update({ where: { id }, data: { status } });
+
+  if (status === "PAID" && !before.ledgerEntryId) {
+    const ledgerEntry = await db.ledgerEntry.create({
+      data: {
+        date: updated.paymentDate ?? new Date(),
+        type: "EXPENSE",
+        category: "HR Compensation",
+        amount: updated.amount,
+        currency: updated.currency,
+        personId: updated.personId,
+        paymentMethod: updated.paymentMethod,
+        sourceModule: "CompensationPayment",
+        sourceId: updated.id,
+        notes: `Compensation payment for ${name}`,
+      },
+    });
+    await db.compensationPayment.update({ where: { id }, data: { ledgerEntryId: ledgerEntry.id } });
+    await removeAutoDeadline("CompensationPayment", id, "HR Compensation Due");
+  } else if (status !== "PAID" && before.ledgerEntryId) {
+    await db.compensationPayment.update({ where: { id }, data: { ledgerEntryId: null } });
+    await db.ledgerEntry.delete({ where: { id: before.ledgerEntryId } }).catch(() => {});
+  }
+
+  await logAudit({
+    action: "updated",
+    section: "HR",
+    recordType: "CompensationPayment",
+    recordId: id,
+    summary: `Compensation for ${name}: ${before.status} → ${status}`,
+    performedByType: "OSCAR",
+    performedByLabel: "Oscar",
+  });
+
+  revalidatePath(`/hr/${before.personId}`);
+  revalidatePath("/ledger");
+  revalidatePath("/");
 }
