@@ -77,6 +77,75 @@ export async function createPerson(formData: FormData) {
   redirect(`/hr/${person.id}`);
 }
 
+/**
+ * Alternative to filling the person form by hand: upload a passport or
+ * Emirates ID and let OCR pre-fill the profile. Creates the person as PENDING
+ * with whatever the ID yielded (name, visa/ID expiry, etc.) and drops the user
+ * on the edit page to review and complete — passport/EID numbers, which the
+ * Person model has no dedicated fields for, are preserved in the notes so
+ * nothing extracted is lost.
+ */
+export async function createPersonFromDocument(formData: FormData) {
+  const fileRef = parseFileRef(formData, "file");
+  if (!fileRef) throw new Error("No document uploaded");
+
+  const { document, fields } = await ingestDocument({
+    fileRef,
+    documentType: "HR_DOCUMENT",
+    category: "Identity document",
+    uploadedByType: "OSCAR",
+    uploadedByLabel: "Oscar",
+  });
+
+  const fullName = fieldValue<string>(fields, "name")?.trim();
+  let firstName = "New";
+  let lastName = "person";
+  if (fullName) {
+    const parts = fullName.split(/\s+/);
+    firstName = parts[0];
+    lastName = parts.slice(1).join(" ");
+  }
+
+  const nationality = fieldValue<string>(fields, "nationality");
+  const passport = fieldValue<string>(fields, "passportNumber");
+  const emiratesId = fieldValue<string>(fields, "emiratesId");
+  const noteParts = [
+    nationality ? `Nationality: ${nationality}` : null,
+    passport ? `Passport: ${passport}` : null,
+    emiratesId ? `Emirates ID: ${emiratesId}` : null,
+    "(auto-filled from uploaded ID — please review)",
+  ].filter(Boolean) as string[];
+
+  const person = await db.person.create({
+    data: {
+      firstName,
+      lastName,
+      type: "OTHER",
+      status: "PENDING",
+      visaPermitDate: fieldDate(fields, "visaExpiry") ?? fieldDate(fields, "expiryDate"),
+      contractStart: fieldDate(fields, "contractStart"),
+      contractEnd: fieldDate(fields, "contractEnd"),
+      compensationAmount: fieldValue<number>(fields, "compensation") ?? undefined,
+      notes: noteParts.join(" · "),
+    },
+  });
+
+  await db.document.update({ where: { id: document.id }, data: { personId: person.id } });
+  await syncPersonDeadlines(person);
+  await logAudit({
+    action: "created",
+    section: "HR",
+    recordType: "Person",
+    recordId: person.id,
+    summary: `Created ${firstName} ${lastName} from uploaded ID (needs review)`,
+    performedByType: "OSCAR",
+    performedByLabel: "Oscar",
+  });
+
+  revalidatePath("/hr");
+  redirect(`/hr/${person.id}`);
+}
+
 export async function updatePerson(id: string, formData: FormData) {
   const before = await db.person.findUniqueOrThrow({ where: { id } });
   const person = await db.person.update({
