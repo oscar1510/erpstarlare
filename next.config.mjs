@@ -18,8 +18,21 @@ const nextConfig = {
   // silently missing from the deployed function (confirmed in production:
   // "Cannot find module '.../pdfjs-dist/legacy/build/pdf.worker.mjs'",
   // breaking both PDF text extraction and the rasterize+OCR fallback).
+  //
+  // tesseract.js-core ships four prebuilt WASM cores (plain/SIMD ×
+  // base/LSTM) and its Emscripten glue reads the matching .wasm file off
+  // disk by name at runtime based on feature detection done *in the
+  // deployed function*, not at build time — so every variant has to be
+  // present, not just whichever one happened to load during a local build.
+  // Same untraceable-at-build-time class of bug as pdf.worker.mjs above
+  // (confirmed in production: "ENOENT ... tesseract-core-simd.wasm" hard
+  // aborting the whole function).
   outputFileTracingIncludes: {
-    "/**": ["./assets/tessdata/**", "./node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs"],
+    "/**": [
+      "./assets/tessdata/**",
+      "./node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs",
+      "./node_modules/tesseract.js-core/*.wasm",
+    ],
   },
   experimental: {
     serverActions: {
