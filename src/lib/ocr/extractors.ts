@@ -137,7 +137,11 @@ export interface ParsedTransactionLine {
 export function extractBankTransactionLines(text: string, openingBalance?: number | null): ParsedTransactionLine[] {
   const lines = text.split(/\n/);
   const results: ParsedTransactionLine[] = [];
-  const dateAtStart = /^\s*(\d{1,2}[-/.]\d{1,2}[-/.](?:19|20)?\d{2})/;
+  // Accept the date formats banks actually use at the start of a statement
+  // row: numeric DD/MM/YYYY (or with - .), ISO YYYY-MM-DD, and month-name
+  // "DD Mon YYYY" (e.g. "04 Jul 2026") — matching only numeric dates made
+  // month-name statements parse to zero transactions.
+  const dateAtStart = /^\s*(\d{1,2}[-/.]\d{1,2}[-/.](?:19|20)?\d{2}|(?:19|20)\d{2}[-/]\d{1,2}[-/]\d{1,2}|\d{1,2}[ -][A-Za-z]{3,9}\.?[ -](?:19|20)?\d{2})/;
   let previousBalance: number | null = openingBalance ?? null;
 
   for (const line of lines) {

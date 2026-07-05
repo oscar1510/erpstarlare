@@ -95,8 +95,8 @@ export function parseDateLoose(text: string): Date | null {
     if (isValidYMD(y, mo - 1, d)) return new Date(Date.UTC(y, mo - 1, d, 12));
   }
 
-  // DD Month YYYY  (e.g. 5 Jan 2026 / 05 January 2026 / 30 Jan, 2026)
-  m = t.match(/\b(\d{1,2})\s+([A-Za-z]{3,9}),?\s+((?:19|20)\d{2})\b/);
+  // DD Month YYYY  (e.g. 5 Jan 2026 / 05 January 2026 / 30 Jan, 2026 / 04-Jul-2026)
+  m = t.match(/\b(\d{1,2})[\s-]+([A-Za-z]{3,9})\.?,?[\s-]+((?:19|20)\d{2})\b/);
   if (m) {
     const d = parseInt(m[1], 10);
     const mo = MONTHS[m[2].toLowerCase()];
