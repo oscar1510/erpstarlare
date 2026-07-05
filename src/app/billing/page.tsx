@@ -21,8 +21,14 @@ export default async function BillingPage() {
             <Link href="/billing/stripe/upload" className="btn-secondary">
               ⬆️ Upload Stripe invoice
             </Link>
-            <Link href="/billing/new" className="btn-primary">
-              + New invoice
+            <Link href="/billing/documents" className="btn-secondary">
+              📄 Quotations
+            </Link>
+            <Link href="/billing/documents/new?kind=QUOTATION" className="btn-secondary">
+              📝 Create quotation
+            </Link>
+            <Link href="/billing/documents/new?kind=INVOICE" className="btn-primary">
+              🧾 Generate invoice
             </Link>
           </>
         }
