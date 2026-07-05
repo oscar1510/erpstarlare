@@ -98,13 +98,49 @@ export function extractStripeInvoiceFields(text: string, words?: OcrWord[]): Ext
   };
 }
 
+// Common UAE / international banks, matched to a clean display name so the
+// bank column doesn't end up showing a fragment of the legal disclaimer.
+const KNOWN_BANKS: [RegExp, string][] = [
+  [/RAKBANK|Ras Al Khaimah/i, "RAKBANK"],
+  [/Emirates NBD/i, "Emirates NBD"],
+  [/\bADCB\b|Abu Dhabi Commercial/i, "ADCB"],
+  [/\bFAB\b|First Abu Dhabi/i, "First Abu Dhabi Bank"],
+  [/Mashreq/i, "Mashreq"],
+  [/\bADIB\b|Abu Dhabi Islamic/i, "ADIB"],
+  [/Dubai Islamic|\bDIB\b/i, "Dubai Islamic Bank"],
+  [/Emirates Islamic/i, "Emirates Islamic"],
+  [/\bHSBC\b/i, "HSBC"],
+  [/Standard Chartered/i, "Standard Chartered"],
+  [/\bWIO\b/i, "Wio Bank"],
+  [/Commercial Bank of Dubai|\bCBD\b/i, "Commercial Bank of Dubai"],
+];
+
 export function extractBankStatementFields(text: string): ExtractedFields {
+  let bankName = findLabeledText(text, ["Bank Name"], 40);
+  if (!bankName.value) {
+    const hit = KNOWN_BANKS.find(([re]) => re.test(text));
+    if (hit) bankName = { value: hit[1], confidence: 0.8 };
+  }
+
+  // Statements usually give the period on one line ("... 30-Nov-2025 to
+  // 31-Dec-2025"), not as separate From/To labels — parse both ends at once.
+  let periodStart = findLabeledDate(text, ["Statement Period From", "Period From"]);
+  let periodEnd = findLabeledDate(text, ["Statement Period To", "Period To"]);
+  const span = text.match(/(?:Statement\s*Period|Period)[:\s]+([0-9A-Za-z][0-9A-Za-z/.\- ]{4,20}?)\s+(?:to|-|–|—)\s+([0-9A-Za-z][0-9A-Za-z/.\- ]{4,20})/i);
+  if (span) {
+    const s = parseDateLoose(span[1]);
+    const e = parseDateLoose(span[2]);
+    if (s) periodStart = { value: s, confidence: 0.85, raw: span[1].trim() };
+    if (e) periodEnd = { value: e, confidence: 0.85, raw: span[2].trim() };
+  }
+
   return {
-    bankName: findLabeledText(text, ["Bank Name", "Bank"], 40),
-    accountName: findLabeledText(text, ["Account Name", "Account Holder"], 40),
+    bankName,
+    accountName: findLabeledText(text, ["Account Name", "Account Holder", "Account Title"], 40),
+    accountNumber: findLabeledText(text, ["Account Number", "Account No", "A/C No"], 30),
     iban: findIBAN(text),
-    periodStart: findLabeledDate(text, ["Statement Period From", "Period From", "From"]),
-    periodEnd: findLabeledDate(text, ["Statement Period To", "Period To", "To"]),
+    periodStart,
+    periodEnd,
     openingBalance: findLabeledAmount(text, ["Opening Balance", "Balance Brought Forward"]),
     closingBalance: findLabeledAmount(text, ["Closing Balance", "Balance Carried Forward", "Ending Balance"]),
   };
@@ -119,85 +155,89 @@ export interface ParsedTransactionLine {
   confidence: number;
 }
 
+// A statement row starts with a date. Supports numeric (DD/MM/YYYY),
+// ISO (YYYY-MM-DD) and month-name (03-DEC-2025 / 04 Jul 2026) forms.
+const ROW_DATE = /^(\d{1,2}[-/.]\d{1,2}[-/.](?:19|20)?\d{2}|(?:19|20)\d{2}[-/]\d{1,2}[-/]\d{1,2}|\d{1,2}[ -][A-Za-z]{3,9}\.?[ -](?:19|20)?\d{2})\b/;
+const MONEY = /-?[0-9][0-9,]*\.[0-9]{2}/g;
+
 /**
- * Very deliberately conservative: only lines that look like
- * `DATE   DESCRIPTION   AMOUNT   [AMOUNT]   [BALANCE]` are treated as
- * transactions. Anything ambiguous is skipped rather than guessed, since a
- * mis-parsed bank line is worse than a missing one (user can add manually).
+ * Parses statement transactions robustly across two common layouts:
+ *   1. One row per line: `DATE  DESCRIPTION  AMOUNT  [BALANCE]`.
+ *   2. Multi-line blocks (e.g. RAKBANK): the date on its own line, then a few
+ *      description lines, then an `AMOUNT  BALANCECr` line — everything from
+ *      one date line up to the next date line is one transaction.
  *
- * Most bank exports print debits/credits as unsigned numbers in separate
- * columns rather than a single signed amount, so a plain "is this number
- * negative?" check mislabels debits as credits on those statements. When a
- * running balance column is present, the direction is instead derived from
- * the balance delta versus the previous transaction (or the statement's
- * opening balance for the first line), which is reliable regardless of
- * column layout. The sign-based heuristic is only used as a last resort when
- * there's no balance to diff against.
+ * Debit vs credit is derived from the running-balance delta versus the
+ * previous row (or the statement's opening balance for the first row), which
+ * is reliable no matter whether the bank prints debits/credits as separate
+ * columns or a single signed amount. The last money value in a block is taken
+ * as the running balance and the one before it as the transaction amount.
  */
 export function extractBankTransactionLines(text: string, openingBalance?: number | null): ParsedTransactionLine[] {
-  const lines = text.split(/\n/);
+  const lines = text.split(/\n/).map((l) => l.trim());
+  // Indices of lines that begin a transaction (start with a real date).
+  const starts: number[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    const m = lines[i].match(ROW_DATE);
+    if (m && parseDateLoose(m[1])) starts.push(i);
+  }
+
   const results: ParsedTransactionLine[] = [];
-  // Accept the date formats banks actually use at the start of a statement
-  // row: numeric DD/MM/YYYY (or with - .), ISO YYYY-MM-DD, and month-name
-  // "DD Mon YYYY" (e.g. "04 Jul 2026") — matching only numeric dates made
-  // month-name statements parse to zero transactions.
-  const dateAtStart = /^\s*(\d{1,2}[-/.]\d{1,2}[-/.](?:19|20)?\d{2}|(?:19|20)\d{2}[-/]\d{1,2}[-/]\d{1,2}|\d{1,2}[ -][A-Za-z]{3,9}\.?[ -](?:19|20)?\d{2})/;
   let previousBalance: number | null = openingBalance ?? null;
 
-  for (const line of lines) {
-    const dateMatch = line.match(dateAtStart);
-    if (!dateMatch) continue;
-    const date = parseDateLoose(dateMatch[1]);
+  for (let s = 0; s < starts.length; s++) {
+    const from = starts[s];
+    const to = s + 1 < starts.length ? starts[s + 1] : lines.length;
+    const block = lines.slice(from, to);
+    const date = parseDateLoose(block[0].match(ROW_DATE)![1]);
     if (!date) continue;
 
-    const numbers = [...line.matchAll(/-?[0-9][0-9,]*\.[0-9]{2}/g)].map((m) =>
-      parseFloat(m[0].replace(/,/g, ""))
-    );
-    if (numbers.length === 0) continue;
+    // All 2-decimal money values across the block, in reading order.
+    const nums: number[] = [];
+    for (const l of block) {
+      for (const m of l.matchAll(MONEY)) {
+        const n = parseFloat(m[0].replace(/,/g, ""));
+        if (Number.isFinite(n)) nums.push(n);
+      }
+    }
+    if (nums.length === 0) continue;
 
-    const description = line
-      .slice(dateMatch[0].length)
-      .replace(/-?[0-9][0-9,]*\.[0-9]{2}/g, "")
-      .trim()
-      .slice(0, 120);
+    const balanceAfter = nums[nums.length - 1];
+    const amt = nums.length >= 2 ? nums[nums.length - 2] : nums[0];
 
+    const round2 = (n: number) => Math.round(n * 100) / 100;
     let moneyIn = 0;
     let moneyOut = 0;
-    let balanceAfter: number | null = null;
     let confidence: number;
-
-    if (numbers.length >= 2) {
-      // Last number is the running balance; whichever earlier number the
-      // line carries, the balance delta tells the true direction/magnitude.
-      const amt = numbers[0];
-      const bal = numbers[numbers.length - 1];
-      balanceAfter = bal;
-
-      if (previousBalance !== null) {
-        const delta = bal - previousBalance;
-        if (delta < 0) moneyOut = Math.abs(delta);
-        else moneyIn = delta;
-        confidence = 0.6;
-      } else {
-        if (amt < 0) moneyOut = Math.abs(amt);
-        else moneyIn = amt;
-        confidence = 0.4;
-      }
-      previousBalance = bal;
+    if (previousBalance !== null && nums.length >= 2) {
+      const delta = round2(balanceAfter - previousBalance);
+      if (delta < 0) moneyOut = Math.abs(delta);
+      else moneyIn = delta;
+      confidence = 0.6;
     } else {
-      const amt = numbers[0];
-      if (amt < 0) moneyOut = Math.abs(amt);
-      else moneyIn = amt;
-      confidence = 0.3;
-      previousBalance = null; // no balance column on this line to keep chaining from
+      if (amt < 0) moneyOut = round2(Math.abs(amt));
+      else moneyIn = round2(amt);
+      confidence = 0.35;
     }
+    previousBalance = nums.length >= 2 ? balanceAfter : previousBalance;
+
+    // Description = the block's text lines minus the leading date and any
+    // money/balance tokens, collapsed to something readable.
+    const description = block
+      .join(" ")
+      .replace(ROW_DATE, "")
+      .replace(MONEY, "")
+      .replace(/\b(Cr|Dr)\b/g, "")
+      .replace(/\s{2,}/g, " ")
+      .trim()
+      .slice(0, 120);
 
     results.push({
       date,
       description: description || "(unlabeled transaction)",
       moneyIn,
       moneyOut,
-      balanceAfter,
+      balanceAfter: nums.length >= 2 ? balanceAfter : null,
       confidence,
     });
   }

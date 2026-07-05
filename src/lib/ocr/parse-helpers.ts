@@ -152,11 +152,6 @@ function labelBoundary(label: string): string {
  */
 const LABEL_GAP = "[ \\t]*:?[ \\t]*\\n?[ \\t]*";
 
-// Optional currency token that can sit between a label's colon and the number,
-// e.g. "Amount: AED 392" or "Amount : Đ 392.00" — UAE point-of-sale receipts
-// print the dirham glyph, which OCR routinely mangles into a stray D/Đ/B.
-const CURRENCY_PREFIX = "(?:AED|AED\\.?|Dhs?\\.?|DH|SAR|USD|EUR|GBP|\\$|€|£|₹|Đ|[DB])?[ \\t]*";
-
 /** Find the best-matching date near a label (e.g. "Invoice Date", "Due Date"). */
 export function findLabeledDate(text: string, labels: string[]): FieldGuess<Date> {
   for (const label of labels) {
@@ -204,29 +199,52 @@ function toNumber(raw: string): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+/**
+ * Pick the most likely money amount out of a short span of text (a label's
+ * line). Prefers numbers written with 2 decimals — real amounts on a receipt
+ * ("392.00") — over bare integers, and among those takes the largest. This
+ * avoids the classic failure where a stray leading glyph (the AED dirham
+ * symbol OCRs as a "8"/"D") gets grabbed as the amount instead of the real
+ * "392.00" further along the line.
+ */
+function bestAmountIn(span: string): number | null {
+  // No trailing \b: bank balances are often written "7,928.59Cr" with the
+  // Cr/Dr glued on, and a word boundary between "9" and "C" doesn't exist, so
+  // \b would clip the cents. A negative lookahead just guards against eating
+  // into a longer number.
+  const decimals = [...span.matchAll(/[0-9][0-9,]*\.[0-9]{2}(?![0-9])/g)]
+    .map((m) => toNumber(m[0]))
+    .filter((n): n is number => n !== null);
+  if (decimals.length) return Math.max(...decimals);
+  const ints = [...span.matchAll(/[0-9][0-9,]*(?![0-9.])/g)]
+    .map((m) => toNumber(m[0]))
+    .filter((n): n is number => n !== null);
+  if (ints.length) return Math.max(...ints);
+  return null;
+}
+
 /** Look for an amount near a label, e.g. "Total", "Amount Due", "Grand Total". */
 export function findLabeledAmount(text: string, labels: string[]): FieldGuess<number> {
   let zeroFallback: FieldGuess<number> | null = null;
   for (const label of labels) {
-    const re = new RegExp(
-      labelBoundary(label) + LABEL_GAP + CURRENCY_PREFIX + "([0-9][0-9,]*\\.?[0-9]{0,2})",
-      "gi"
-    );
+    // Capture each occurrence of the label together with the rest of its line,
+    // then pick the best amount from that line rather than the first token.
+    const re = new RegExp(labelBoundary(label) + LABEL_GAP + "([^\\n]{0,40})", "gi");
     const matches = [...text.matchAll(re)];
-    if (matches.length > 0) {
-      // Prefer the last match: totals are conventionally the final labeled
-      // line on a receipt/invoice (subtotal/tax lines come first).
-      const m = matches[matches.length - 1];
-      const n = toNumber(m[1]);
+    if (matches.length === 0) continue;
+    // Prefer the last occurrence: totals are conventionally the final labeled
+    // line on a receipt/invoice (subtotal/tax lines come first).
+    for (let i = matches.length - 1; i >= 0; i--) {
+      const n = bestAmountIn(matches[i][1]);
+      if (n === null) continue;
       if (n === 0) {
-        // A labeled zero (e.g. "Amount due 0.00" on an invoice that's
-        // already fully paid) technically matches, but a later label like
-        // "Amount Paid"/"Total" almost always has the real figure — hold
-        // onto it and keep looking rather than settling immediately.
-        zeroFallback ??= { value: n, confidence: 0.85, raw: m[0].trim() };
+        // A labeled zero (e.g. "Amount due 0.00" on an already-paid invoice)
+        // technically matches, but a later label like "Amount Paid"/"Total"
+        // almost always carries the real figure — hold it and keep looking.
+        zeroFallback ??= { value: 0, confidence: 0.85, raw: matches[i][0].trim() };
         continue;
       }
-      if (n !== null) return { value: n, confidence: 0.85, raw: m[0].trim() };
+      return { value: n, confidence: 0.85, raw: matches[i][0].trim() };
     }
   }
   return zeroFallback ?? { value: null, confidence: 0 };
