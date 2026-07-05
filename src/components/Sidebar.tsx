@@ -25,7 +25,7 @@ const NAV = [
 export function Sidebar() {
   const pathname = usePathname();
   return (
-    <aside className="w-64 shrink-0 bg-white border-r border-slate-200 h-screen sticky top-0 overflow-y-auto hidden lg:flex flex-col">
+    <aside className="w-64 shrink-0 bg-white border-r border-slate-200 h-screen sticky top-0 overflow-y-auto hidden lg:flex flex-col print:!hidden">
       <div className="px-4 py-4 border-b border-slate-100">
         <span className="text-lg font-bold text-brand-700">⭐ Starflare ERP</span>
       </div>

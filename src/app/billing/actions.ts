@@ -181,28 +181,69 @@ export async function confirmStripeInvoice(documentId: string, formData: FormDat
   const total = parseFormNumber(formData.get("amount")) ?? 0;
   const isPaid = str(formData, "isPaid") === "yes";
 
+  const number = await nextInvoiceNumber(invoiceDate);
+  const dueDate = parseFormDate(formData.get("dueDate"));
+  const currency = str(formData, "currency") ?? "AED";
+  const description = str(formData, "description") ?? "Stripe subscription / purchase";
+  // Prefer the linked client's saved details; otherwise use whatever was
+  // extracted/edited on the review form (name, email, phone, TRN, address).
+  const clientNameSnapshot = client?.name ?? str(formData, "clientName");
+  const clientCompanySnapshot = client?.companyName ?? str(formData, "clientName");
+  const clientEmailSnapshot = client?.billingEmail ?? client?.mainEmail ?? str(formData, "clientEmail");
+  const clientAddressSnapshot = client?.address ?? str(formData, "clientAddress");
+  const clientTRNSnapshot = client?.trn ?? str(formData, "clientTrn");
+  const clientPhone = client?.phone ?? str(formData, "clientPhone");
+
   const invoice = await db.invoice.create({
     data: {
-      number: await nextInvoiceNumber(invoiceDate),
+      number,
       clientId,
-      clientNameSnapshot: client?.name ?? str(formData, "clientName"),
-      clientCompanySnapshot: client?.companyName,
-      clientEmailSnapshot: client?.billingEmail ?? client?.mainEmail ?? str(formData, "clientEmail"),
-      clientAddressSnapshot: client?.address,
-      clientTRNSnapshot: client?.trn,
+      clientNameSnapshot,
+      clientCompanySnapshot,
+      clientEmailSnapshot,
+      clientAddressSnapshot,
+      clientTRNSnapshot,
       invoiceDate,
-      dueDate: parseFormDate(formData.get("dueDate")),
-      description: str(formData, "description") ?? "Stripe subscription / purchase",
+      dueDate,
+      description,
       quantity: 1,
       unitPrice: total,
       vat: 0,
       total,
-      currency: str(formData, "currency") ?? "AED",
+      currency,
       paymentMethod: "Stripe",
       status: isPaid ? "PAID" : "SENT",
       source: "STRIPE",
       sourceStripeDocumentId: documentId,
       notes: "Auto-created from an uploaded Stripe invoice. Review before relying on totals.",
+    },
+  });
+
+  // Also create a branded Starflare document (the new invoice layout) linked to
+  // this invoice, so the converted invoice looks like a Starflare invoice — not
+  // a copy of the Stripe one.
+  const brandedDoc = await db.quotation.create({
+    data: {
+      kind: "INVOICE",
+      number,
+      clientId,
+      companyName: clientCompanySnapshot,
+      contactPerson: clientNameSnapshot,
+      clientEmail: clientEmailSnapshot,
+      clientPhone,
+      clientAddress: clientAddressSnapshot,
+      clientTrn: clientTRNSnapshot,
+      packageType: "Starflare Platform Subscription",
+      subjectLine: description,
+      includePackageList: false,
+      price: total,
+      currency,
+      vatMode: "NONE",
+      paymentMethod: "Stripe",
+      docDate: invoiceDate,
+      validUntil: dueDate,
+      status: isPaid ? "PAID" : "SENT",
+      invoiceId: invoice.id,
     },
   });
 
@@ -272,5 +313,5 @@ export async function confirmStripeInvoice(documentId: string, formData: FormDat
   });
 
   revalidatePath("/billing");
-  redirect(`/billing/${invoice.id}`);
+  redirect(`/billing/documents/${brandedDoc.id}`);
 }

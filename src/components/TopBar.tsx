@@ -14,7 +14,7 @@ export function TopBar() {
   }
 
   return (
-    <header className="sticky top-0 z-10 bg-white border-b border-slate-200 px-4 py-2.5 flex items-center gap-3">
+    <header className="sticky top-0 z-10 bg-white border-b border-slate-200 px-4 py-2.5 flex items-center gap-3 print:hidden">
       <Link href="/" className="lg:hidden font-bold text-brand-700">⭐</Link>
       <form onSubmit={submit} className="flex-1 max-w-xl">
         <input

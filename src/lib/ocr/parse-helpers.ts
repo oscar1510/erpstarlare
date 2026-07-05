@@ -26,8 +26,24 @@ export interface OcrWord {
  * boxes can: the "Bill to" label marks the left edge of the client column, and
  * the client name is the first text line below it that starts at that x.
  */
-export function findBilledToClient(words: OcrWord[] | undefined): FieldGuess<string> {
-  if (!words || words.length === 0) return { value: null, confidence: 0 };
+export interface BilledToDetails {
+  name: string | null;
+  address: string | null;
+  phone: string | null;
+  email: string | null;
+  trn: string | null;
+}
+
+/**
+ * Reconstruct the whole "Bill to" column from word boxes: the client's name
+ * (first line), then the address/phone/email lines beneath it. Line-based OCR
+ * merges this column with the sender's own address, so we anchor on the "Bill
+ * to" label's x-position and keep only words in that column, grouped into
+ * lines by their y-position.
+ */
+export function findBilledToDetails(words: OcrWord[] | undefined): BilledToDetails {
+  const empty: BilledToDetails = { name: null, address: null, phone: null, email: null, trn: null };
+  if (!words || words.length === 0) return empty;
   const norm = (s: string) => s.toLowerCase().replace(/[^a-z]/g, "");
 
   let header: OcrWord | null = null;
@@ -45,28 +61,54 @@ export function findBilledToClient(words: OcrWord[] | undefined): FieldGuess<str
       }
     }
   }
-  if (!header) return { value: null, confidence: 0 };
+  if (!header) return empty;
 
-  // Everything in the client column (at/right of the label) and below its line.
-  const colLeft = header.x0 - 40; // small tolerance for OCR jitter / left-edge alignment
-  const belowY = header.y0 + 12;
+  const colLeft = header.x0 - 40; // tolerance for OCR jitter / left-edge alignment
+  // Only the client column, and stop well before the totals/table area lower down.
   const colWords = words
-    .filter((w) => w.x0 >= colLeft && w.y0 >= belowY)
+    .filter((w) => w.x0 >= colLeft && w.y0 >= header.y0 + 12 && w.y0 < header.y0 + 220)
     .sort((a, b) => a.y0 - b.y0 || a.x0 - b.x0);
-  if (colWords.length === 0) return { value: null, confidence: 0 };
+  if (colWords.length === 0) return empty;
 
-  // The first line below the header (a y-cluster) is the client name.
-  const firstY = colWords[0].y0;
-  const name = colWords
-    .filter((w) => Math.abs(w.y0 - firstY) < 18)
-    .sort((a, b) => a.x0 - b.x0)
-    .map((w) => w.text)
-    .join(" ")
-    .trim();
+  // Group column words into lines by y-cluster.
+  const lines: string[] = [];
+  let cur: OcrWord[] = [];
+  let lastY = colWords[0].y0;
+  for (const w of colWords) {
+    if (Math.abs(w.y0 - lastY) > 18 && cur.length) {
+      lines.push(cur.sort((a, b) => a.x0 - b.x0).map((x) => x.text).join(" ").trim());
+      cur = [];
+    }
+    cur.push(w);
+    lastY = w.y0;
+  }
+  if (cur.length) lines.push(cur.sort((a, b) => a.x0 - b.x0).map((x) => x.text).join(" ").trim());
 
-  // Reject lines that are obviously an address/phone/email rather than a name.
-  if (name.length < 2 || /^[+\d]/.test(name) || /@/.test(name)) return { value: null, confidence: 0 };
-  return { value: name.slice(0, 60), confidence: 0.75 };
+  const cleaned = lines.map((l) => l.trim()).filter(Boolean);
+  if (cleaned.length === 0) return empty;
+
+  // First line is the name (unless it's obviously an address/phone/email).
+  let name: string | null = cleaned[0];
+  if (name.length < 2 || /^[+\d]/.test(name) || /@/.test(name)) name = null;
+  const rest = name ? cleaned.slice(1) : cleaned;
+
+  const email = rest.find((l) => /@/.test(l))?.match(/[^\s]+@[^\s]+/)?.[0] ?? null;
+  const phone = rest.find((l) => /\+?\d[\d\s-]{6,}\d/.test(l))?.match(/\+?\d[\d\s-]{6,}\d/)?.[0]?.trim() ?? null;
+  const columnText = cleaned.join("\n");
+  const trn = findTRN(columnText).value;
+  const address =
+    rest
+      .filter((l) => !/@/.test(l) && !/^\+?\d[\d\s-]{6,}\d$/.test(l.trim()))
+      .join(", ")
+      .slice(0, 160) || null;
+
+  return { name: name ? name.slice(0, 60) : null, address, phone, email, trn };
+}
+
+/** Back-compat helper: just the "Bill to" client name from word boxes. */
+export function findBilledToClient(words: OcrWord[] | undefined): FieldGuess<string> {
+  const d = findBilledToDetails(words);
+  return d.name ? { value: d.name, confidence: 0.75 } : { value: null, confidence: 0 };
 }
 
 const MONTHS: Record<string, number> = {

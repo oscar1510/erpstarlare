@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import { db } from "@/lib/db";
 import { PageHeader, Section } from "@/components/ui/Page";
 import { Field, FormGrid, Select, TextArea, TextInput } from "@/components/ui/Field";
+import { ClientLinkSelect } from "@/components/ClientLinkSelect";
 import { CURRENCIES, PAYMENT_METHODS } from "@/lib/constants";
 import { createGeneratedDocument } from "../actions";
 
@@ -45,8 +46,8 @@ export default async function NewDocumentPage({ searchParams }: { searchParams: 
 
         <Section title="1 · Client">
           <FormGrid>
-            <Field label="Link to existing client (optional)">
-              <Select name="clientId" options={clients.map((c) => ({ value: c.id, label: c.name }))} placeholder="No link" defaultValue={clientId} />
+            <Field label="Link to existing client (optional)" hint="Picking a client fills the fields below from their profile.">
+              <ClientLinkSelect clients={clients} />
             </Field>
             <Field label="Company name">
               <TextInput name="companyName" />

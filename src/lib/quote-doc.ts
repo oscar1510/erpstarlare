@@ -1,5 +1,34 @@
 import { formatMoney, formatDate } from "@/lib/format";
 
+/** Starflare's registered company details, shown as the issuer on every document. */
+export const STARFLARE_COMPANY = {
+  name: "Starflare Ltd",
+  addressLines: [
+    "3801-C2.D016, 38th Floor, Addax Port Office Tower,",
+    "Tamouh, Abu Dhabi, Al Reem Island",
+    "United Arab Emirates",
+  ],
+  tagline: "WHERE CREATOR ECONOMY MEETS AI",
+};
+
+/** Inline SVG wordmark (gradient STARFLARE) — self-contained so it renders in
+ *  the print/PDF view and in the downloaded Word file without an external asset. */
+function starflareLogo(): string {
+  return `
+    <svg width="230" height="42" viewBox="0 0 230 42" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Starflare">
+      <defs>
+        <linearGradient id="sfg" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stop-color="#ec4899"/>
+          <stop offset="0.5" stop-color="#a21caf"/>
+          <stop offset="1" stop-color="#2563eb"/>
+        </linearGradient>
+      </defs>
+      <text x="26" y="32" font-family="'Helvetica Neue',Arial,sans-serif" font-size="34" font-weight="800" letter-spacing="1" fill="url(#sfg)">STARFLARE</text>
+      <path d="M2 26 C10 14, 22 12, 30 18" stroke="#ec4899" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+      <path d="M20 6 l2 5 l5 2 l-5 2 l-2 5 l-2 -5 l-5 -2 l5 -2 z" fill="#ec4899"/>
+    </svg>`;
+}
+
 /** The subset of Quotation fields the branded document needs. */
 export interface QuoteDocData {
   kind: string; // QUOTATION or INVOICE
@@ -241,15 +270,18 @@ export function renderQuoteDocBody(q: QuoteDocData): string {
   <div style="max-width:820px;margin:0 auto;padding:40px;font-family:'Helvetica Neue',Arial,sans-serif;color:#0f172a;">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;">
       <div>
-        <div style="font-size:30px;font-weight:800;background:linear-gradient(90deg,#7c3aed,#ec4899);-webkit-background-clip:text;background-clip:text;color:#ec4899;">★ STARFLARE</div>
-        <div style="font-size:10px;letter-spacing:.14em;color:#94a3b8;font-weight:700;margin-top:2px;">WHERE CREATOR ECONOMY MEETS AI</div>
-        <div style="color:#64748b;font-size:13px;margin-top:10px;">Starflare Ltd. — Creator Economy Platform</div>
+        ${starflareLogo()}
+        <div style="font-size:10px;letter-spacing:.14em;color:#94a3b8;font-weight:700;margin-top:2px;">${STARFLARE_COMPANY.tagline}</div>
+        <div style="color:#334155;font-size:12px;margin-top:12px;line-height:1.5;">
+          <div style="font-weight:700;color:#0f172a;">${STARFLARE_COMPANY.name}</div>
+          ${STARFLARE_COMPANY.addressLines.map((l) => `<div>${esc(l)}</div>`).join("")}
+        </div>
       </div>
       <div style="text-align:right;">
         <div style="font-size:26px;font-weight:800;color:#0f172a;">${title}</div>
         <div style="color:#64748b;font-size:13px;margin-top:8px;">No. ${esc(q.number)}</div>
         <div style="color:#64748b;font-size:13px;">Date: ${esc(formatDate(q.docDate))}</div>
-        ${q.validUntil ? `<div style="color:#64748b;font-size:13px;">Valid until: ${esc(formatDate(q.validUntil))}</div>` : ""}
+        ${q.validUntil ? `<div style="color:#64748b;font-size:13px;">${q.kind === "INVOICE" ? "Due" : "Valid until"}: ${esc(formatDate(q.validUntil))}</div>` : ""}
       </div>
     </div>
 

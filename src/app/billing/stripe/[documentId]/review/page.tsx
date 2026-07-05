@@ -65,6 +65,15 @@ export default async function ReviewStripeInvoicePage({ params }: { params: Prom
             <Field label="Client email">
               <TextInput name="clientEmail" type="email" defaultValue={fields.clientEmail?.value ?? ""} />
             </Field>
+            <Field label="Client phone">
+              <TextInput name="clientPhone" defaultValue={fields.clientPhone?.value ?? ""} />
+            </Field>
+            <Field label="Client TRN / VAT no.">
+              <TextInput name="clientTrn" defaultValue={fields.clientTrn?.value ?? ""} />
+            </Field>
+            <Field label="Client address">
+              <TextInput name="clientAddress" defaultValue={fields.clientAddress?.value ?? ""} />
+            </Field>
             <Field label="Invoice date">
               <div className="flex items-center gap-2">
                 <TextInput type="date" name="invoiceDate" defaultValue={formatDateInput(fields.invoiceDate?.value)} className="flex-1" />

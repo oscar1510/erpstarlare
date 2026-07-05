@@ -1,7 +1,7 @@
 import {
   FieldGuess,
   OcrWord,
-  findBilledToClient,
+  findBilledToDetails,
   findCurrency,
   findEmail,
   findEmiratesId,
@@ -76,15 +76,18 @@ export function extractStripeInvoiceFields(text: string, words?: OcrWord[]): Ext
   const amount = findLabeledAmount(text, ["Amount Due", "Amount Paid", "Total", "Total Due"]);
   const paidMatch = /\bpaid\b/i.test(text) && !/\bnot\s+paid\b/i.test(text);
   // Prefer column-aware extraction from word boxes (handles Stripe's two-column
-  // "Bill to" block); fall back to the flat-text label match when boxes aren't
-  // available (e.g. a born-digital PDF read via its text layer).
-  const clientFromColumn = findBilledToClient(words);
+  // "Bill to" block — name, address, phone, TRN); fall back to flat-text label
+  // matches when boxes aren't available (a born-digital PDF read via its text layer).
+  const billed = findBilledToDetails(words);
+  const g = <T,>(value: T | null, confidence: number): FieldGuess<T> => ({ value, confidence });
   return {
-    clientName:
-      clientFromColumn.value !== null
-        ? clientFromColumn
-        : findLabeledText(text, ["Bill to", "Customer", "Billed to"], 60),
-    clientEmail: findEmail(text),
+    clientName: billed.name
+      ? g(billed.name, 0.75)
+      : findLabeledText(text, ["Bill to", "Customer", "Billed to"], 60),
+    clientEmail: billed.email ? g(billed.email, 0.75) : findEmail(text),
+    clientPhone: g(billed.phone, billed.phone ? 0.7 : 0),
+    clientAddress: g(billed.address, billed.address ? 0.65 : 0),
+    clientTrn: g(billed.trn, billed.trn ? 0.7 : 0),
     amount: amount.value !== null ? amount : findLargestAmount(text),
     currency: findCurrency(text),
     invoiceDate: findLabeledDate(text, ["Date of issue", "Invoice date", "Date"]),
