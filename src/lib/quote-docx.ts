@@ -6,6 +6,7 @@ import {
   Paragraph,
   Table,
   TableCell,
+  TableLayoutType,
   TableRow,
   TextRun,
   WidthType,
@@ -24,31 +25,39 @@ const PINK = "EC2D8F";
 const INK = "0F172A";
 const MUTED = "64748B";
 const FAINT = "94A3B8";
+
+// A4 (11906 twips wide) minus 720-twip margins each side = usable content width.
+const PAGE_MARGIN = 720;
+const CONTENT_W = 11906 - PAGE_MARGIN * 2; // 10466
+
 const NO_BORDER = { style: BorderStyle.NONE, size: 0, color: "FFFFFF" } as const;
 const NO_BORDERS = { top: NO_BORDER, bottom: NO_BORDER, left: NO_BORDER, right: NO_BORDER, insideHorizontal: NO_BORDER, insideVertical: NO_BORDER };
+const CELL_MARGIN = { top: 40, bottom: 40, left: 60, right: 60 };
+type Align = (typeof AlignmentType)[keyof typeof AlignmentType];
 
 function run(text: string, opts: { bold?: boolean; size?: number; color?: string } = {}) {
   return new TextRun({ text, bold: opts.bold, size: (opts.size ?? 10) * 2, color: opts.color ?? INK });
 }
-function para(children: TextRun[], opts: { align?: (typeof AlignmentType)[keyof typeof AlignmentType]; spacingAfter?: number } = {}) {
+function para(children: TextRun[], opts: { align?: Align; spacingAfter?: number } = {}) {
   return new Paragraph({ children, alignment: opts.align, spacing: { after: opts.spacingAfter ?? 40 } });
 }
-function label(text: string) {
-  return para([run(text, { bold: true, size: 8, color: FAINT })], { spacingAfter: 20 });
+function label(text: string, align?: Align) {
+  return para([run(text, { bold: true, size: 8, color: FAINT })], { align, spacingAfter: 20 });
 }
-/** A borderless two-column row (left block | right block). */
+function cellPara(children: Paragraph[], width: number, align?: Align) {
+  return new TableCell({ width: { size: width, type: WidthType.DXA }, borders: NO_BORDERS, margins: CELL_MARGIN, children });
+}
+
+/** A borderless two-column band with fixed widths so Word/Pages can't collapse it. */
 function twoCol(left: Paragraph[], right: Paragraph[]) {
+  const lw = Math.round(CONTENT_W * 0.55);
+  const rw = CONTENT_W - lw;
   return new Table({
-    width: { size: 100, type: WidthType.PERCENTAGE },
+    width: { size: CONTENT_W, type: WidthType.DXA },
+    columnWidths: [lw, rw],
+    layout: TableLayoutType.FIXED,
     borders: NO_BORDERS,
-    rows: [
-      new TableRow({
-        children: [
-          new TableCell({ width: { size: 55, type: WidthType.PERCENTAGE }, borders: NO_BORDERS, children: left }),
-          new TableCell({ width: { size: 45, type: WidthType.PERCENTAGE }, borders: NO_BORDERS, children: right }),
-        ],
-      }),
-    ],
+    rows: [new TableRow({ children: [cellPara(left, lw), cellPara(right, rw)] })],
   });
 }
 
@@ -60,7 +69,6 @@ export async function renderQuoteDocx(q: QuoteDocData): Promise<Buffer> {
   const summary = packageSummaryLine(q);
   const showVat = q.vatMode !== "NONE" && totals.vat > 0;
 
-  // Header: logo/company (left) | doc meta (right)
   const header = twoCol(
     [
       para([run("STARFLARE", { bold: true, size: 22, color: PINK })]),
@@ -88,61 +96,63 @@ export async function renderQuoteDocx(q: QuoteDocData): Promise<Buffer> {
       ...clientLines.map((l) => para([run(l, { size: 9, color: "334155" })], { spacingAfter: 10 })),
     ],
     [
-      para([run("PACKAGE", { bold: true, size: 8, color: FAINT })], { align: AlignmentType.RIGHT, spacingAfter: 20 }),
+      label("PACKAGE", AlignmentType.RIGHT),
       para([run(q.packageName || q.packageType || "—", { bold: true })], { align: AlignmentType.RIGHT }),
       ...(packageMeta ? [para([run(packageMeta, { size: 9, color: MUTED })], { align: AlignmentType.RIGHT })] : []),
     ]
   );
 
-  // Items table
-  const cell = (text: string, opts: { bold?: boolean; align?: (typeof AlignmentType)[keyof typeof AlignmentType]; color?: string } = {}) =>
-    new TableCell({ borders: NO_BORDERS, margins: { top: 60, bottom: 60, left: 60, right: 60 }, children: [para([run(text, { bold: opts.bold, size: 9, color: opts.color })], { align: opts.align, spacingAfter: 0 })] });
-  const headerCell = (text: string, align?: (typeof AlignmentType)[keyof typeof AlignmentType]) =>
-    new TableCell({ shading: { fill: "F1F5F9" }, borders: NO_BORDERS, margins: { top: 60, bottom: 60, left: 60, right: 60 }, children: [para([run(text, { bold: true, size: 8, color: MUTED })], { align, spacingAfter: 0 })] });
+  // Items table with explicit fixed column widths.
+  const COLS = [520, 5946, 900, 1550, 1550]; // sums to 10466
+  const cell = (text: string, i: number, opts: { bold?: boolean; align?: Align; color?: string } = {}) =>
+    cellPara([para([run(text, { bold: opts.bold, size: 9, color: opts.color })], { align: opts.align, spacingAfter: 0 })], COLS[i], opts.align);
+  const headerCell = (text: string, i: number, align?: Align) =>
+    new TableCell({ width: { size: COLS[i], type: WidthType.DXA }, shading: { fill: "F1F5F9" }, borders: NO_BORDERS, margins: CELL_MARGIN, children: [para([run(text, { bold: true, size: 8, color: MUTED })], { align, spacingAfter: 0 })] });
 
   const itemRows = [
-    new TableRow({ children: [headerCell("#"), headerCell("ITEM & DESCRIPTION"), headerCell("QTY", AlignmentType.RIGHT), headerCell("RATE", AlignmentType.RIGHT), headerCell("AMOUNT", AlignmentType.RIGHT)] }),
+    new TableRow({ children: [headerCell("#", 0), headerCell("ITEM & DESCRIPTION", 1), headerCell("QTY", 2, AlignmentType.RIGHT), headerCell("RATE", 3, AlignmentType.RIGHT), headerCell("AMOUNT", 4, AlignmentType.RIGHT)] }),
     new TableRow({
       children: [
-        cell("1"),
-        new TableCell({ borders: NO_BORDERS, margins: { top: 60, bottom: 60, left: 60, right: 60 }, children: [
-          para([run(q.packageType || "Package", { bold: true, size: 9 })], { spacingAfter: 10 }),
-          ...(summary ? [para([run(summary, { size: 8, color: MUTED })], { spacingAfter: 0 })] : []),
-        ] }),
-        cell("1", { align: AlignmentType.RIGHT }),
-        cell(formatMoney(q.price, q.currency), { align: AlignmentType.RIGHT }),
-        cell(formatMoney(q.price, q.currency), { align: AlignmentType.RIGHT }),
+        cell("1", 0),
+        cellPara(
+          [
+            para([run(q.packageType || "Package", { bold: true, size: 9 })], { spacingAfter: summary ? 10 : 0 }),
+            ...(summary ? [para([run(summary, { size: 8, color: MUTED })], { spacingAfter: 0 })] : []),
+          ],
+          COLS[1]
+        ),
+        cell("1", 2, { align: AlignmentType.RIGHT }),
+        cell(formatMoney(q.price, q.currency), 3, { align: AlignmentType.RIGHT }),
+        cell(formatMoney(q.price, q.currency), 4, { align: AlignmentType.RIGHT }),
       ],
     }),
     ...extras.map((it, i) =>
-      new TableRow({ children: [cell(String(i + 2)), cell(it.description), cell(String(it.qty), { align: AlignmentType.RIGHT }), cell(formatMoney(it.rate, q.currency), { align: AlignmentType.RIGHT }), cell(formatMoney(it.qty * it.rate, q.currency), { align: AlignmentType.RIGHT })] })
+      new TableRow({ children: [cell(String(i + 2), 0), cell(it.description, 1), cell(String(it.qty), 2, { align: AlignmentType.RIGHT }), cell(formatMoney(it.rate, q.currency), 3, { align: AlignmentType.RIGHT }), cell(formatMoney(it.qty * it.rate, q.currency), 4, { align: AlignmentType.RIGHT })] })
     ),
   ];
-  const itemsTable = new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, borders: NO_BORDERS, rows: itemRows });
+  const itemsTable = new Table({ width: { size: CONTENT_W, type: WidthType.DXA }, columnWidths: COLS, layout: TableLayoutType.FIXED, borders: NO_BORDERS, rows: itemRows });
 
   const totalsParas: Paragraph[] = [];
   if (showVat) {
-    totalsParas.push(para([run(`Subtotal   ${formatMoney(totals.subtotal, q.currency)}`, { size: 9, color: MUTED })], { align: AlignmentType.RIGHT }));
-    totalsParas.push(para([run(`VAT (${q.vatPercent}%)   ${formatMoney(totals.vat, q.currency)}`, { size: 9, color: MUTED })], { align: AlignmentType.RIGHT }));
+    totalsParas.push(para([run(`Subtotal    ${formatMoney(totals.subtotal, q.currency)}`, { size: 9, color: MUTED })], { align: AlignmentType.RIGHT }));
+    totalsParas.push(para([run(`VAT (${q.vatPercent}%)    ${formatMoney(totals.vat, q.currency)}`, { size: 9, color: MUTED })], { align: AlignmentType.RIGHT }));
   }
-  totalsParas.push(para([run(`Total   ${formatMoney(totals.total, q.currency)}`, { bold: true, size: 13 })], { align: AlignmentType.RIGHT }));
+  totalsParas.push(para([run(`Total    ${formatMoney(totals.total, q.currency)}`, { bold: true, size: 13 })], { align: AlignmentType.RIGHT }));
 
-  const sections: Paragraph[] = [];
-  if (q.subjectLine) {
-    sections.push(label("SUBJECT"), para([run(q.subjectLine, { bold: true })]));
-  }
+  const tail: Paragraph[] = [];
+  if (q.subjectLine) tail.push(label("SUBJECT"), para([run(q.subjectLine, { bold: true })]));
   if (q.includePackageList) {
-    sections.push(new Paragraph({ children: [run("Package & Platform Access includes:", { bold: true })], spacing: { before: 200, after: 60 } }));
-    for (const b of packageAccessList(q)) sections.push(new Paragraph({ text: b, bullet: { level: 0 }, spacing: { after: 20 } }));
+    tail.push(new Paragraph({ children: [run("Package & Platform Access includes:", { bold: true })], spacing: { before: 200, after: 60 } }));
+    for (const b of packageAccessList(q)) tail.push(new Paragraph({ text: b, bullet: { level: 0 }, spacing: { after: 20 } }));
   }
   const paymentBits = [q.paymentMethod ? `Method: ${q.paymentMethod}` : null, q.paymentFrequency ? `Frequency: ${q.paymentFrequency}` : null].filter(Boolean).join(" · ");
   if (paymentBits || q.paymentTerms) {
-    sections.push(new Paragraph({ children: [run("PAYMENT", { bold: true, size: 8, color: FAINT })], spacing: { before: 200, after: 40 } }));
-    if (paymentBits) sections.push(para([run(paymentBits, { size: 9, color: "334155" })]));
-    if (q.paymentTerms) sections.push(para([run(q.paymentTerms, { size: 9, color: "334155" })]));
+    tail.push(new Paragraph({ children: [run("PAYMENT", { bold: true, size: 8, color: FAINT })], spacing: { before: 200, after: 40 } }));
+    if (paymentBits) tail.push(para([run(paymentBits, { size: 9, color: "334155" })]));
+    if (q.paymentTerms) tail.push(para([run(q.paymentTerms, { size: 9, color: "334155" })]));
   }
-  sections.push(new Paragraph({ children: [run("TERM & RENEWAL", { bold: true, size: 8, color: FAINT })], spacing: { before: 200, after: 40 } }));
-  sections.push(
+  tail.push(new Paragraph({ children: [run("TERM & RENEWAL", { bold: true, size: 8, color: FAINT })], spacing: { before: 200, after: 40 } }));
+  tail.push(
     para([
       run(
         [
@@ -160,18 +170,19 @@ export async function renderQuoteDocx(q: QuoteDocData): Promise<Buffer> {
     styles: { default: { document: { run: { font: "Calibri" } } } },
     sections: [
       {
-        properties: { page: { margin: { top: 720, bottom: 720, left: 720, right: 720 } } },
+        properties: { page: { size: { width: 11906, height: 16838 }, margin: { top: PAGE_MARGIN, bottom: PAGE_MARGIN, left: PAGE_MARGIN, right: PAGE_MARGIN } } },
         children: [
           header,
           new Paragraph({ border: { bottom: { style: BorderStyle.SINGLE, size: 12, color: PINK, space: 6 } }, spacing: { after: 160 } }),
           billTo,
           new Paragraph({ text: "", spacing: { after: 80 } }),
-          ...sections.slice(0, q.subjectLine ? 2 : 0),
+          ...(q.subjectLine ? [label("SUBJECT"), para([run(q.subjectLine, { bold: true })])] : []),
           new Paragraph({ text: "", spacing: { after: 40 } }),
           itemsTable,
           new Paragraph({ border: { top: { style: BorderStyle.SINGLE, size: 8, color: INK, space: 4 } }, spacing: { after: 80 } }),
           ...totalsParas,
-          ...sections.slice(q.subjectLine ? 2 : 0),
+          // subject already rendered above; render the rest of the tail (skip a leading duplicate subject)
+          ...tail.filter((_, idx) => !(q.subjectLine && idx < 2)),
           new Paragraph({ children: [run("Generated by Starflare ERP", { size: 8, color: FAINT })], alignment: AlignmentType.CENTER, spacing: { before: 300 } }),
         ],
       },
