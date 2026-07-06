@@ -1,4 +1,29 @@
+import { existsSync, readFileSync } from "fs";
+import path from "path";
 import { formatMoney, formatDate } from "@/lib/format";
+
+/** Where the official brand logo lives, if the user drops it into the repo. */
+const LOGO_CANDIDATES: [string, string][] = [
+  ["public/starflare-logo.png", "image/png"],
+  ["public/starflare-logo.svg", "image/svg+xml"],
+  ["public/starflare-logo.jpg", "image/jpeg"],
+  ["public/starflare-logo.jpeg", "image/jpeg"],
+];
+
+/** Returns the official logo as a base64 data URI if one is in the repo, else null. */
+export function officialLogoDataUri(): string | null {
+  for (const [rel, mime] of LOGO_CANDIDATES) {
+    const p = path.join(process.cwd(), rel);
+    if (existsSync(p)) {
+      try {
+        return `data:${mime};base64,${readFileSync(p).toString("base64")}`;
+      } catch {
+        /* ignore and fall through */
+      }
+    }
+  }
+  return null;
+}
 
 /** Starflare's registered company details, shown as the issuer on every document. */
 export const STARFLARE_COMPANY = {
@@ -78,7 +103,21 @@ export interface QuoteDocData {
   clientSignatory?: string | null;
   docDate: Date | string;
   validUntil?: Date | string | null;
+  /** JSON array of the fixed access lines the user chose to include; null = all. */
+  packageAccessItems?: string | null;
 }
+
+/** The standard (non-count-based) "Package & Platform Access" lines, each individually optional. */
+export const FIXED_ACCESS_ITEMS = [
+  "Access to the Starflare platform",
+  "Access to Starflare's creator database",
+  "Campaign setup and launch support",
+  "Creator communication tools",
+  "Campaign management tools",
+  "Analytics and performance tracking",
+  "Dedicated Account Manager",
+  "Starflare team support",
+];
 
 export interface LineItem {
   description: string;
@@ -112,7 +151,12 @@ export function packageSummaryLine(q: QuoteDocData): string {
   return parts.join(" · ");
 }
 
-/** The "Package & Platform Access includes" bullet list, derived from the package fields. */
+/**
+ * The "Package & Platform Access includes" bullet list. The count-based lines
+ * (venues/campaigns/creators/coverage/tier) always follow the package fields;
+ * the fixed lines are whichever ones the user ticked (q.packageAccessItems),
+ * or all of them when nothing has been customised.
+ */
 export function packageAccessList(q: QuoteDocData): string[] {
   const list: string[] = [];
   if (q.venues) list.push(`Access for ${q.venues} venue${q.venues === 1 ? "" : "s"}`);
@@ -120,15 +164,18 @@ export function packageAccessList(q: QuoteDocData): string[] {
   if (q.creators) list.push(`Collaboration with up to ${q.creators} creators per month`);
   if (q.coverage) list.push(`Creator database coverage: ${q.coverage}`);
   if (q.creatorType) list.push(`Creator tier: ${q.creatorType}`);
-  list.push("Access to the Starflare platform");
-  list.push("Access to Starflare's creator database");
-  list.push("Campaign setup and launch support");
-  list.push("Creator communication tools");
-  list.push("Campaign management tools");
-  list.push("Analytics and performance tracking");
-  list.push("Dedicated Account Manager");
-  list.push("Starflare team support");
-  return list;
+
+  let chosen: string[] | null = null;
+  if (q.packageAccessItems) {
+    try {
+      const parsed = JSON.parse(q.packageAccessItems);
+      if (Array.isArray(parsed)) chosen = parsed.map(String);
+    } catch {
+      chosen = null;
+    }
+  }
+  const fixed = chosen ? FIXED_ACCESS_ITEMS.filter((i) => chosen!.includes(i)) : FIXED_ACCESS_ITEMS;
+  return [...list, ...fixed];
 }
 
 export interface DocTotals {
@@ -276,7 +323,7 @@ export function renderQuoteDocBody(q: QuoteDocData): string {
   <div style="max-width:820px;margin:0 auto;padding:40px;font-family:'Helvetica Neue',Arial,sans-serif;color:#0f172a;">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;">
       <div>
-        ${starflareLogo()}
+        ${officialLogoDataUri() ? `<img src="${officialLogoDataUri()}" alt="Starflare" style="height:58px;width:auto;display:block;"/>` : starflareLogo()}
         <div style="font-size:10px;letter-spacing:.14em;color:#94a3b8;font-weight:700;margin-top:2px;">${STARFLARE_COMPANY.tagline}</div>
         <div style="color:#334155;font-size:12px;margin-top:12px;line-height:1.5;">
           <div style="font-weight:700;color:#0f172a;">${STARFLARE_COMPANY.name}</div>

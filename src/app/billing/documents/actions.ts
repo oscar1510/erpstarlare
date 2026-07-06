@@ -66,6 +66,9 @@ export async function createGeneratedDocument(formData: FormData) {
     creatorType: str(formData, "creatorType"),
     subjectLine: str(formData, "subjectLine"),
     includePackageList: formData.get("includePackageList") !== null ? bool(formData, "includePackageList") : true,
+    // The generator always renders these checkboxes, so an empty selection is a
+    // deliberate "show none" — store it as [] rather than falling back to all.
+    packageAccessItems: JSON.stringify(formData.getAll("accessItem").map((v) => String(v))),
 
     price: parseFormNumber(formData.get("price")) ?? 0,
     currency: str(formData, "currency") ?? "AED",

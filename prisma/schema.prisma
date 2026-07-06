@@ -249,6 +249,7 @@ model Quotation {
   creatorType        String?
   subjectLine        String?
   includePackageList Boolean @default(true)
+  packageAccessItems String? // JSON array of chosen fixed access lines; null = all
 
   // Pricing & payment
   price            Float   @default(0)

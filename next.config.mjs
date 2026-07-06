@@ -33,6 +33,7 @@ const nextConfig = {
       "./node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs",
       "./node_modules/tesseract.js-core/*.wasm",
       "./node_modules/libheif-js/libheif-wasm/libheif.wasm",
+      "./public/starflare-logo.*",
     ],
   },
   experimental: {

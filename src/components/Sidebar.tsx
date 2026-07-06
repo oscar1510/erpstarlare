@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const NAV = [
+export const NAV = [
   { href: "/", label: "KPI Dashboard", icon: "📊" },
   { href: "/expenses/scan", label: "Quick Expense Scanner", icon: "🧾", highlight: true },
   { href: "/billing", label: "Billing / Invoices", icon: "💳" },

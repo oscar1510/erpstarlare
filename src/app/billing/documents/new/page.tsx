@@ -5,6 +5,7 @@ import { PageHeader, Section } from "@/components/ui/Page";
 import { Field, FormGrid, Select, TextArea, TextInput } from "@/components/ui/Field";
 import { ClientLinkSelect } from "@/components/ClientLinkSelect";
 import { CURRENCIES, PAYMENT_METHODS } from "@/lib/constants";
+import { FIXED_ACCESS_ITEMS } from "@/lib/quote-doc";
 import { createGeneratedDocument } from "../actions";
 
 const PACKAGE_TYPES = ["Monthly Subscription", "Quarterly Subscription", "Annual Subscription", "One-off Campaign", "Custom"];
@@ -100,9 +101,17 @@ export default async function NewDocumentPage({ searchParams }: { searchParams: 
               <TextInput name="subjectLine" placeholder="Starflare Platform Subscription" />
             </Field>
           </FormGrid>
-          <label className="flex items-center gap-2 text-sm text-slate-600 mt-3">
+          <label className="flex items-center gap-2 text-sm text-slate-700 font-medium mt-3">
             <input type="checkbox" name="includePackageList" defaultChecked /> Include the &quot;Package &amp; Platform Access&quot; list in the document
           </label>
+          <div className="mt-2 pl-6 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5">
+            <p className="sm:col-span-2 text-xs text-slate-400">Tick the lines you want shown (the venue / campaign / creator counts above are always included):</p>
+            {FIXED_ACCESS_ITEMS.map((item) => (
+              <label key={item} className="flex items-center gap-2 text-sm text-slate-600">
+                <input type="checkbox" name="accessItem" value={item} defaultChecked /> {item}
+              </label>
+            ))}
+          </div>
         </Section>
 
         <Section title="3 · Pricing & payment">

@@ -1,7 +1,10 @@
+import { existsSync, readFileSync } from "fs";
+import path from "path";
 import {
   AlignmentType,
   BorderStyle,
   Document,
+  ImageRun,
   Packer,
   Paragraph,
   Table,
@@ -69,9 +72,25 @@ export async function renderQuoteDocx(q: QuoteDocData): Promise<Buffer> {
   const summary = packageSummaryLine(q);
   const showVat = q.vatMode !== "NONE" && totals.vat > 0;
 
+  // Use the official raster logo (PNG/JPG in public/) if present, else a text mark.
+  const logoPara = (() => {
+    for (const [rel, type] of [["public/starflare-logo.png", "png"], ["public/starflare-logo.jpg", "jpg"], ["public/starflare-logo.jpeg", "jpg"]] as const) {
+      const p = path.join(process.cwd(), rel);
+      if (existsSync(p)) {
+        try {
+          const data = readFileSync(p);
+          return new Paragraph({ children: [new ImageRun({ data, type: type as "png" | "jpg", transformation: { width: 190, height: 48 } })], spacing: { after: 40 } });
+        } catch {
+          /* fall through to text */
+        }
+      }
+    }
+    return para([run("STARFLARE", { bold: true, size: 22, color: PINK })]);
+  })();
+
   const header = twoCol(
     [
-      para([run("STARFLARE", { bold: true, size: 22, color: PINK })]),
+      logoPara,
       para([run(STARFLARE_COMPANY.tagline, { bold: true, size: 7, color: FAINT })]),
       para([run(STARFLARE_COMPANY.name, { bold: true, size: 9 })], { spacingAfter: 10 }),
       ...STARFLARE_COMPANY.addressLines.map((l) => para([run(l, { size: 9, color: MUTED })], { spacingAfter: 10 })),
