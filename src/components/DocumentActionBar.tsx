@@ -10,7 +10,7 @@ export function DocumentActionBar({ wordHref }: { wordHref: string }) {
         🖨 Save as PDF / Print
       </button>
       <a href={wordHref} className="px-4 py-2 rounded-md font-medium bg-slate-700 hover:bg-slate-600">
-        ⬇ Download Word (.doc)
+        ⬇ Download Word (.docx)
       </a>
     </div>
   );

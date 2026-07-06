@@ -1,26 +1,21 @@
 export const dynamic = "force-dynamic";
 
 import { db } from "@/lib/db";
-import { renderQuoteDocFullHtml } from "@/lib/quote-doc";
+import { renderQuoteDocx } from "@/lib/quote-docx";
 
-/**
- * Serves the branded document as a Word file. Word opens a styled HTML
- * document natively, so we hand it the same HTML the on-screen view uses with
- * a .doc filename and Word's content type — one layout, no extra dependency,
- * and the file stays fully editable in Word.
- */
+/** Serves the branded document as a genuine .docx (Open XML) Word file. */
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const quotation = await db.quotation.findUnique({ where: { id } });
   if (!quotation) return new Response("Not found", { status: 404 });
 
-  const html = renderQuoteDocFullHtml(quotation);
+  const buffer = await renderQuoteDocx(quotation);
   const label = quotation.kind === "INVOICE" ? "Invoice" : "Quotation";
-  const filename = `${label}-${quotation.number}.doc`;
+  const filename = `${label}-${quotation.number}.docx`;
 
-  return new Response(html, {
+  return new Response(new Uint8Array(buffer), {
     headers: {
-      "Content-Type": "application/msword",
+      "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       "Content-Disposition": `attachment; filename="${filename}"`,
     },
   });
