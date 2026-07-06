@@ -73,16 +73,10 @@ export default async function BankPage({ searchParams }: { searchParams: Promise
             {
               header: "Classify",
               render: (t) => (
-                <form
-                  action={async (fd: FormData) => {
-                    "use server";
-                    await classifyBankTransaction(t.id, fd);
-                  }}
-                  className="flex items-center gap-1.5"
-                >
+                <form action={classifyBankTransaction.bind(null, t.id)} className="flex items-center gap-1.5">
                   <Select name="category" options={BANK_TXN_CATEGORIES.map((c) => ({ value: c, label: c }))} defaultValue={t.category ?? ""} placeholder="Category" className="!py-1 !text-xs w-36" />
                   <Select name="reconciliation" options={RECONCILIATION_STATUSES.map((s) => ({ value: s, label: labelize(s) }))} defaultValue={t.reconciliation} className="!py-1 !text-xs w-32" />
-                  <button type="submit" className="btn-ghost !py-1 !text-xs">Save</button>
+                  <button type="submit" className="btn-secondary !py-1 !text-xs">Save</button>
                 </form>
               ),
             },

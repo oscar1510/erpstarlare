@@ -14,18 +14,21 @@ export const STARFLARE_COMPANY = {
 /** Inline SVG wordmark (gradient STARFLARE) — self-contained so it renders in
  *  the print/PDF view and in the downloaded Word file without an external asset. */
 function starflareLogo(): string {
+  // Approximates the Starflare wordmark: a pink comet swoosh sweeping into a
+  // gradient "STARFLARE" (pink → purple → blue) with a sparkle over the S.
   return `
-    <svg width="230" height="42" viewBox="0 0 230 42" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Starflare">
+    <svg width="250" height="46" viewBox="0 0 250 46" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Starflare">
       <defs>
         <linearGradient id="sfg" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0" stop-color="#ec4899"/>
-          <stop offset="0.5" stop-color="#a21caf"/>
+          <stop offset="0" stop-color="#ec2d8f"/>
+          <stop offset="0.55" stop-color="#a21caf"/>
           <stop offset="1" stop-color="#2563eb"/>
         </linearGradient>
       </defs>
-      <text x="26" y="32" font-family="'Helvetica Neue',Arial,sans-serif" font-size="34" font-weight="800" letter-spacing="1" fill="url(#sfg)">STARFLARE</text>
-      <path d="M2 26 C10 14, 22 12, 30 18" stroke="#ec4899" stroke-width="3.5" fill="none" stroke-linecap="round"/>
-      <path d="M20 6 l2 5 l5 2 l-5 2 l-2 5 l-2 -5 l-5 -2 l5 -2 z" fill="#ec4899"/>
+      <path d="M4 30 C14 15, 34 12, 46 20" stroke="#ec2d8f" stroke-width="5" fill="none" stroke-linecap="round"/>
+      <path d="M30 4 l2.2 6 l6 2.2 l-6 2.2 l-2.2 6 l-2.2 -6 l-6 -2.2 l6 -2.2 z" fill="#ec2d8f"/>
+      <path d="M40 9 l1 2.6 l2.6 1 l-2.6 1 l-1 2.6 l-1 -2.6 l-2.6 -1 l2.6 -1 z" fill="#ec2d8f"/>
+      <text x="20" y="36" font-family="'Helvetica Neue',Arial,sans-serif" font-size="36" font-weight="800" letter-spacing="0.5" fill="url(#sfg)">STARFLARE</text>
     </svg>`;
 }
 
@@ -346,8 +349,23 @@ export function renderQuoteDocBody(q: QuoteDocData): string {
   </div>`;
 }
 
-/** A complete standalone HTML document — used by the Word (.doc) download route. */
+/**
+ * A Word-openable HTML document. Word reads styled HTML natively, but only
+ * reliably when it's wrapped with the MS Office XML namespaces and a
+ * <w:WordDocument> settings block — a bare HTML file with a .doc extension
+ * often fails to open. This wrapper is what makes the download open cleanly
+ * (and stay editable) in Word.
+ */
 export function renderQuoteDocFullHtml(q: QuoteDocData): string {
   const title = `${q.kind === "INVOICE" ? "Invoice" : "Quotation"} ${q.number}`;
-  return `<!doctype html><html><head><meta charset="utf-8"><title>${esc(title)}</title></head><body style="margin:0;background:#fff;">${renderQuoteDocBody(q)}</body></html>`;
+  return `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta charset="utf-8">
+<meta name="ProgId" content="Word.Document">
+<title>${esc(title)}</title>
+<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]-->
+<style>@page { size: A4; margin: 1.5cm; } body { font-family: 'Helvetica Neue', Arial, sans-serif; }</style>
+</head>
+<body style="margin:0;background:#fff;">${renderQuoteDocBody(q)}</body>
+</html>`;
 }

@@ -12,6 +12,7 @@ import {
   findLabeledText,
   findLargestAmount,
   findLineItemDescription,
+  findLatestDate,
   findPassportNumber,
   findTRN,
   findVAT,
@@ -248,9 +249,32 @@ export function extractBankTransactionLines(text: string, openingBalance?: numbe
   return results;
 }
 
+/**
+ * Pull a holder name from a passport/ID. Tries the machine-readable zone
+ * (the "P<COUNTRY SURNAME<<GIVEN NAMES" line) first — it's the most reliable
+ * part of a passport for OCR — then falls back to the visual "Surname / Given
+ * names / Name" labels.
+ */
+function findIdName(text: string): FieldGuess<string> {
+  const mrz = text.replace(/\s/g, "").match(/P[<K][A-Z]{3}([A-Z<]{6,})/);
+  if (mrz) {
+    const [surnameRaw, givenRaw] = mrz[1].split("<<");
+    const surname = (surnameRaw ?? "").replace(/</g, " ").trim();
+    const given = (givenRaw ?? "").replace(/</g, " ").trim();
+    const name = [given, surname].filter(Boolean).join(" ").replace(/\s+/g, " ").trim();
+    if (name.length >= 3) return { value: name, confidence: 0.7 };
+  }
+  const surname = findLabeledText(text, ["Surname", "Family Name"], 30).value;
+  const given = findLabeledText(text, ["Given Name(?:s)?", "First Name", "Given"], 40).value;
+  if (surname || given) {
+    return { value: [given, surname].filter(Boolean).join(" ").trim(), confidence: 0.6 };
+  }
+  return findLabeledText(text, ["Full Name", "Name of Holder", "Holder", "Name"], 50);
+}
+
 export function extractPersonDocumentFields(text: string): ExtractedFields {
   return {
-    name: findLabeledText(text, ["Name", "Full Name", "Holder"], 50),
+    name: findIdName(text),
     nationality: findLabeledText(text, ["Nationality"], 30),
     passportNumber: findPassportNumber(text),
     emiratesId: findEmiratesId(text),
@@ -293,16 +317,46 @@ export function extractLeaseFields(text: string): ExtractedFields {
   };
 }
 
+// Common UAE licensing / tax authorities, matched to a clean display name so
+// the field doesn't fill with a fragment of the surrounding legal prose.
+const KNOWN_AUTHORITIES: [RegExp, string][] = [
+  [/\bADGM\b|Abu Dhabi Global Market/i, "Abu Dhabi Global Market (ADGM)"],
+  [/Federal Tax Authority|\bFTA\b/i, "Federal Tax Authority (FTA)"],
+  [/\bDIFC\b|Dubai International Financial/i, "Dubai International Financial Centre (DIFC)"],
+  [/Department of Economic Development|\bDED\b|\bDET\b/i, "Department of Economic Development"],
+  [/\bDMCC\b/i, "DMCC"],
+  [/\bJAFZA\b|Jebel Ali/i, "JAFZA"],
+  [/Ministry of Economy/i, "Ministry of Economy"],
+  [/\bRAKEZ\b|Ras Al Khaimah Economic/i, "RAKEZ"],
+];
+
 export function extractTaxDocumentFields(text: string): ExtractedFields {
+  let authority = findLabeledText(text, ["Issuing Authority", "Registration Authority"], 50);
+  // Prefer a recognised authority name; the generic "Authority" label matches
+  // inside prose ("...accepted by the Authority...") and grabs junk.
+  const known = KNOWN_AUTHORITIES.find(([re]) => re.test(text));
+  if (known && (!authority.value || /^[a-z]|referred|accepted|was\b/.test(authority.value)))
+    authority = { value: known[1], confidence: 0.8 };
+
+  const issueDate = findLabeledDate(text, ["Issue Date", "Date of Issue", "Issued On", "Issued"]);
+  let expiryDate = findLabeledDate(text, ["Expiry Date", "Date of Expiry", "Valid Until", "Valid To", "Licence Expiry", "License Expiry", "Expires On", "Expiry"]);
+  // On a licence the expiry is always the furthest-future date; if the label
+  // wording is unusual, fall back to the latest date in the document (as long
+  // as it's actually later than the issue date).
+  if (!expiryDate.value) {
+    const latest = findLatestDate(text);
+    if (latest && (!issueDate.value || latest > issueDate.value)) expiryDate = { value: latest, confidence: 0.5 };
+  }
+
   return {
     companyName: findLabeledText(text, ["Company Name", "Legal Name", "Entity Name"], 60),
-    licenseNumber: findLabeledText(text, ["License Number", "License No", "Licence No"], 30),
+    licenseNumber: findLabeledText(text, ["License Number", "License No", "Licence No", "Registration No"], 30),
     taxRefNumber: findTRN(text),
-    authority: findLabeledText(text, ["Issuing Authority", "Authority"], 40),
-    issueDate: findLabeledDate(text, ["Issue Date", "Date of Issue"]),
-    expiryDate: findLabeledDate(text, ["Expiry Date", "Valid Until", "Date of Expiry"]),
+    authority,
+    issueDate,
+    expiryDate,
     submissionDate: findLabeledDate(text, ["Submission Date", "Filed on", "Date Filed"]),
-    dueDate: findLabeledDate(text, ["Due Date", "Next Due Date", "Deadline"]),
-    fiscalPeriod: findLabeledText(text, ["Fiscal Period", "Tax Period", "Period"], 30),
+    dueDate: findLabeledDate(text, ["Due Date", "Next Due Date", "Deadline", "Renewal Date"]),
+    fiscalPeriod: findLabeledText(text, ["Fiscal Period", "Tax Period"], 30),
   };
 }

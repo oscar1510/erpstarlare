@@ -129,7 +129,7 @@ export function parseDateLoose(text: string): Date | null {
   const t = text.trim();
 
   // YYYY-MM-DD or YYYY/MM/DD
-  let m = t.match(/\b(19|20)\d{2}[-/](\d{1,2})[-/](\d{1,2})\b/);
+  let m = t.match(/\b(19|20)\d{2}[-/](\d{1,2})[-/](\d{1,2})(?![0-9])/);
   if (m) {
     const y = parseInt(m[0].slice(0, 4), 10);
     const parts = m[0].slice(4).split(/[-/]/).filter(Boolean).map(Number);
@@ -155,8 +155,10 @@ export function parseDateLoose(text: string): Date | null {
     if (mo !== undefined && isValidYMD(y, mo, d)) return new Date(Date.UTC(y, mo, d, 12));
   }
 
-  // DD/MM/YYYY or DD-MM-YYYY (day-first, common in UAE) - also accept 2-digit year
-  m = t.match(/\b(\d{1,2})[-/.](\d{1,2})[-/.]((?:19|20)?\d{2})\b/);
+  // DD/MM/YYYY or DD-MM-YYYY (day-first, common in UAE) - also accept 2-digit year.
+  // Trailing (?![0-9]) instead of \b so a date glued to the next token (e.g.
+  // "04-07-2026Time" on a thermal receipt) still parses.
+  m = t.match(/\b(\d{1,2})[-/.](\d{1,2})[-/.]((?:19|20)?\d{2})(?![0-9])/);
   if (m) {
     const d = parseInt(m[1], 10);
     const mo = parseInt(m[2], 10);
@@ -168,6 +170,21 @@ export function parseDateLoose(text: string): Date | null {
   }
 
   return null;
+}
+
+/**
+ * The latest valid date anywhere in the text. Useful for licenses/registrations
+ * where the expiry is always the furthest-future date on the document — handy
+ * when the "Expiry" label itself is worded unpredictably.
+ */
+export function findLatestDate(text: string): Date | null {
+  let latest: Date | null = null;
+  for (const line of text.split(/\n/)) {
+    // scan each whitespace-separated token window so multiple dates on a line are seen
+    const d = parseDateLoose(line);
+    if (d && (!latest || d > latest)) latest = d;
+  }
+  return latest;
 }
 
 /**

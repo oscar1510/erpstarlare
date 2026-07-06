@@ -39,7 +39,13 @@ export async function createTaxRecord(formData: FormData) {
       submissionDate: parseFormDate(formData.get("submissionDate")) ?? fieldDate(fields, "submissionDate"),
       fiscalPeriod: str(formData, "fiscalPeriod") ?? fieldValue<string>(fields, "fiscalPeriod"),
       issueDate: parseFormDate(formData.get("issueDate")) ?? fieldDate(fields, "issueDate"),
-      nextDueDate: parseFormDate(formData.get("nextDueDate")) ?? fieldDate(fields, "dueDate"),
+      // For a licence/registration the renewal deadline IS the expiry date, so
+      // prefer the extracted expiry (the future date) over a generic due date,
+      // which on a licence has no label and previously fell back to the issue date.
+      nextDueDate:
+        parseFormDate(formData.get("nextDueDate")) ??
+        fieldDate(fields, "expiryDate") ??
+        fieldDate(fields, "dueDate"),
       status: str(formData, "status") ?? "PENDING",
       documentId,
       notes: str(formData, "notes"),
