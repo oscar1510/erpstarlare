@@ -14,20 +14,24 @@ export const STARFLARE_COMPANY = {
 /** Inline SVG wordmark (gradient STARFLARE) — self-contained so it renders in
  *  the print/PDF view and in the downloaded Word file without an external asset. */
 function starflareLogo(): string {
-  // Clean gradient STARFLARE wordmark (pink → purple → blue) with a single
-  // sparkle. Kept deliberately simple — swap in the official logo by dropping
-  // a data-URI <img> here once the brand asset is available.
+  // Recreation of the Starflare wordmark: a pink comet swoosh curving around
+  // the "S", three sparkles at its top-right, and "STARFLARE" in a pink →
+  // purple → blue gradient. Self-contained SVG so it renders in the print/PDF
+  // view without an external asset. Coordinates verified by rendering.
   return `
-    <svg width="240" height="42" viewBox="0 0 240 42" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Starflare">
+    <svg width="270" height="77" viewBox="0 0 700 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Starflare">
       <defs>
         <linearGradient id="sfg" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0" stop-color="#ec2d8f"/>
-          <stop offset="0.55" stop-color="#a21caf"/>
-          <stop offset="1" stop-color="#2563eb"/>
+          <stop offset="0" stop-color="#ec1180"/>
+          <stop offset="0.5" stop-color="#9b1fb5"/>
+          <stop offset="1" stop-color="#1b3fe0"/>
         </linearGradient>
       </defs>
-      <path d="M8 5 l1.6 4.4 l4.4 1.6 l-4.4 1.6 l-1.6 4.4 l-1.6 -4.4 l-4.4 -1.6 l4.4 -1.6 z" fill="#ec2d8f"/>
-      <text x="0" y="34" font-family="'Helvetica Neue',Arial,sans-serif" font-size="34" font-weight="800" letter-spacing="1" fill="url(#sfg)">STARFLARE</text>
+      <path d="M14 165 C58 189 150 184 150 66 C150 104 120 150 66 158 C46 161 28 162 14 165 Z" fill="#ec1180"/>
+      <text x="55" y="140" font-family="'Helvetica Neue',Arial,sans-serif" font-size="96" font-weight="800" letter-spacing="1" fill="url(#sfg)">STARFLARE</text>
+      <path d="M122 44 C122 58 130 65 144 65 C130 65 122 72 122 86 C122 72 114 65 100 65 C114 65 122 58 122 44 Z" fill="#ec1180"/>
+      <path d="M158 30 C158 39 163 44 172 44 C163 44 158 49 158 58 C158 49 153 44 144 44 C153 44 158 39 158 30 Z" fill="#ec1180"/>
+      <path d="M97 34 C97 41 101 45 108 45 C101 45 97 49 97 56 C97 49 93 45 86 45 C93 45 97 41 97 34 Z" fill="#ec1180"/>
     </svg>`;
 }
 
