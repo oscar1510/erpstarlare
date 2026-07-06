@@ -36,6 +36,40 @@ async function decodeHeicToPng(buffer: Buffer): Promise<Buffer> {
   return Buffer.from(output);
 }
 
+/**
+ * Clean up a photographed receipt before OCR: upscale small images, convert to
+ * grayscale, and boost contrast. Phone photos of thermal receipts are low
+ * contrast and often small once cropped, which is exactly what makes tesseract
+ * hallucinate ("RISTORANTE" → "RANEY ie ; rE"). Best-effort — any failure
+ * falls back to the original bytes.
+ */
+async function preprocessImage(buffer: Buffer): Promise<Buffer> {
+  try {
+    const { createCanvas, loadImage } = await import("@napi-rs/canvas");
+    const img = await loadImage(buffer);
+    const scale = img.width && img.width < 1500 ? Math.min(2.5, 1800 / img.width) : 1;
+    const w = Math.max(1, Math.round(img.width * scale));
+    const h = Math.max(1, Math.round(img.height * scale));
+    const canvas = createCanvas(w, h);
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(img as unknown as any, 0, 0, w, h);
+    const imageData = ctx.getImageData(0, 0, w, h);
+    const d = imageData.data;
+    const contrast = 1.35;
+    for (let i = 0; i < d.length; i += 4) {
+      const gray = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+      let v = (gray - 128) * contrast + 128;
+      v = v < 0 ? 0 : v > 255 ? 255 : v;
+      d[i] = d[i + 1] = d[i + 2] = v;
+    }
+    ctx.putImageData(imageData, 0, 0);
+    return canvas.toBuffer("image/png");
+  } catch (err) {
+    console.error("[OCR] image preprocess failed, using original:", err);
+    return buffer;
+  }
+}
+
 // Bundled locally so OCR never depends on an external CDN at request time
 // (serverless functions get one cold-start fetch of the CDN copy otherwise,
 // which is slow and a single point of failure for a core feature).
@@ -188,6 +222,7 @@ export async function runOcr(buffer: Buffer, mimeType: string): Promise<OcrResul
           return buffer; // fall through and let tesseract try (will just yield no text)
         });
       }
+      imageBuffer = await preprocessImage(imageBuffer); // upscale + grayscale + contrast for phone photos
       const { text, confidence, words } = await runTesseractOnImage(imageBuffer);
       return { text, confidence, engine: "tesseract", ok: text.trim().length > 0, words };
     }

@@ -1,8 +1,10 @@
 import {
   FieldGuess,
   OcrWord,
+  findBankMerchant,
   findBilledToDetails,
   findCurrency,
+  findTransactionAmount,
   findEmail,
   findEmiratesId,
   findIBAN,
@@ -43,11 +45,33 @@ export function serializeFields(fields: ExtractedFields) {
 }
 
 export function extractReceiptFields(text: string): ExtractedFields {
-  const amount = findLabeledAmount(text, ["Total\\s*Amount", "Grand Total", "Total", "Amount Due", "Amount"]);
+  // Amount priority: a labeled total (incl. Italian "Totale", French "Total"),
+  // then a bank/POS "Purchase of X" pattern (which also avoids grabbing the
+  // account balance), then the largest non-balance number on the page.
+  const labeledAmount = findLabeledAmount(text, [
+    "Total\\s*Amount",
+    "Grand Total",
+    "Totale\\s*Complessivo",
+    "Total",
+    "Totale",
+    "Importo\\s*Pagato",
+    "Importo",
+    "Amount Due",
+    "Amount",
+    "Montant",
+  ]);
+  const txnAmount = findTransactionAmount(text);
+  const amount = labeledAmount.value !== null ? labeledAmount : txnAmount.value !== null ? txnAmount : findLargestAmount(text);
+
+  // Vendor: a bank alert names the merchant after "at ..."; otherwise the
+  // merchant is a header line.
+  const merchant = findBankMerchant(text);
+  const vendor = merchant.value ? merchant : findVendorName(text);
+
   return {
-    vendor: findVendorName(text),
-    date: findLabeledDate(text, ["Date", "Transaction Date", "Receipt Date"]),
-    amount: amount.value !== null ? amount : findLargestAmount(text),
+    vendor,
+    date: findLabeledDate(text, ["Date", "Transaction Date", "Receipt Date", "Data"]),
+    amount,
     currency: findCurrency(text),
     vat: findVAT(text),
     taxRegNumber: findTRN(text),

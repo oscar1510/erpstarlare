@@ -14,10 +14,11 @@ export const STARFLARE_COMPANY = {
 /** Inline SVG wordmark (gradient STARFLARE) — self-contained so it renders in
  *  the print/PDF view and in the downloaded Word file without an external asset. */
 function starflareLogo(): string {
-  // Approximates the Starflare wordmark: a pink comet swoosh sweeping into a
-  // gradient "STARFLARE" (pink → purple → blue) with a sparkle over the S.
+  // Clean gradient STARFLARE wordmark (pink → purple → blue) with a single
+  // sparkle. Kept deliberately simple — swap in the official logo by dropping
+  // a data-URI <img> here once the brand asset is available.
   return `
-    <svg width="250" height="46" viewBox="0 0 250 46" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Starflare">
+    <svg width="240" height="42" viewBox="0 0 240 42" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Starflare">
       <defs>
         <linearGradient id="sfg" x1="0" y1="0" x2="1" y2="0">
           <stop offset="0" stop-color="#ec2d8f"/>
@@ -25,10 +26,8 @@ function starflareLogo(): string {
           <stop offset="1" stop-color="#2563eb"/>
         </linearGradient>
       </defs>
-      <path d="M4 30 C14 15, 34 12, 46 20" stroke="#ec2d8f" stroke-width="5" fill="none" stroke-linecap="round"/>
-      <path d="M30 4 l2.2 6 l6 2.2 l-6 2.2 l-2.2 6 l-2.2 -6 l-6 -2.2 l6 -2.2 z" fill="#ec2d8f"/>
-      <path d="M40 9 l1 2.6 l2.6 1 l-2.6 1 l-1 2.6 l-1 -2.6 l-2.6 -1 l2.6 -1 z" fill="#ec2d8f"/>
-      <text x="20" y="36" font-family="'Helvetica Neue',Arial,sans-serif" font-size="36" font-weight="800" letter-spacing="0.5" fill="url(#sfg)">STARFLARE</text>
+      <path d="M8 5 l1.6 4.4 l4.4 1.6 l-4.4 1.6 l-1.6 4.4 l-1.6 -4.4 l-4.4 -1.6 l4.4 -1.6 z" fill="#ec2d8f"/>
+      <text x="0" y="34" font-family="'Helvetica Neue',Arial,sans-serif" font-size="34" font-weight="800" letter-spacing="1" fill="url(#sfg)">STARFLARE</text>
     </svg>`;
 }
 

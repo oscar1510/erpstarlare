@@ -252,34 +252,54 @@ export function findCurrency(text: string): FieldGuess<string> {
   return { value: "AED", confidence: 0.2 };
 }
 
-function toNumber(raw: string): number | null {
-  const cleaned = raw.replace(/,/g, "").trim();
-  const n = parseFloat(cleaned);
+/**
+ * Parse a single money token in either US ("9,940.98", "135.00") or European
+ * ("9.940,98", "135,00") notation. When both separators are present the last
+ * one is the decimal point; when only a comma is present it's a decimal point
+ * if it's followed by 1–2 digits (135,00) and a thousands separator otherwise
+ * (1,234). This is what lets Italian/EU receipts and UAE receipts both parse.
+ */
+export function parseMoneyToken(tok: string): number | null {
+  let t = tok.replace(/[^\d.,]/g, "");
+  if (!/\d/.test(t)) return null;
+  const lastDot = t.lastIndexOf(".");
+  const lastComma = t.lastIndexOf(",");
+  if (lastDot >= 0 && lastComma >= 0) {
+    if (lastComma > lastDot) t = t.replace(/\./g, "").replace(",", "."); // 9.940,98 → 9940.98
+    else t = t.replace(/,/g, ""); // 9,940.98 → 9940.98
+  } else if (lastComma >= 0) {
+    const after = t.length - lastComma - 1;
+    t = after >= 1 && after <= 2 ? t.replace(",", ".") : t.replace(/,/g, "");
+  } else if (lastDot >= 0) {
+    const after = t.length - lastDot - 1;
+    if (after === 3 && /^\d{1,3}\.\d{3}$/.test(t)) t = t.replace(/\./g, ""); // 1.234 thousands
+  }
+  const n = parseFloat(t);
   return Number.isFinite(n) ? n : null;
 }
 
+function toNumber(raw: string): number | null {
+  return parseMoneyToken(raw);
+}
+
+// A run of digits with optional thousands/decimal separators, e.g. 9,940.98 or 135,00.
+const MONEY_TOKEN_RE = /\d[\d.,]*\d|\d/g;
+// Lines that carry a *balance*, not a transaction amount — never the amount we want.
+const BALANCE_LINE_RE = /balance|available|avl\b|saldo|disponibile|closing|opening/i;
+
 /**
  * Pick the most likely money amount out of a short span of text (a label's
- * line). Prefers numbers written with 2 decimals — real amounts on a receipt
- * ("392.00") — over bare integers, and among those takes the largest. This
- * avoids the classic failure where a stray leading glyph (the AED dirham
- * symbol OCRs as a "8"/"D") gets grabbed as the amount instead of the real
- * "392.00" further along the line.
+ * line). Prefers tokens written with 2 decimals (real amounts like "392.00" /
+ * "135,00") over bare integers, and among those takes the largest — so a stray
+ * leading glyph (the dirham symbol OCRs as "8"/"D") never wins over the real
+ * total further along the line.
  */
 function bestAmountIn(span: string): number | null {
-  // No trailing \b: bank balances are often written "7,928.59Cr" with the
-  // Cr/Dr glued on, and a word boundary between "9" and "C" doesn't exist, so
-  // \b would clip the cents. A negative lookahead just guards against eating
-  // into a longer number.
-  const decimals = [...span.matchAll(/[0-9][0-9,]*\.[0-9]{2}(?![0-9])/g)]
-    .map((m) => toNumber(m[0]))
-    .filter((n): n is number => n !== null);
-  if (decimals.length) return Math.max(...decimals);
-  const ints = [...span.matchAll(/[0-9][0-9,]*(?![0-9.])/g)]
-    .map((m) => toNumber(m[0]))
-    .filter((n): n is number => n !== null);
-  if (ints.length) return Math.max(...ints);
-  return null;
+  const toks = [...span.matchAll(MONEY_TOKEN_RE)].map((m) => m[0]);
+  const withDecimals = toks.filter((t) => /[.,]\d{2}$/.test(t)).map(parseMoneyToken).filter((n): n is number => n !== null);
+  if (withDecimals.length) return Math.max(...withDecimals);
+  const all = toks.map(parseMoneyToken).filter((n): n is number => n !== null);
+  return all.length ? Math.max(...all) : null;
 }
 
 /** Look for an amount near a label, e.g. "Total", "Amount Due", "Grand Total". */
@@ -309,30 +329,62 @@ export function findLabeledAmount(text: string, labels: string[]): FieldGuess<nu
   return zeroFallback ?? { value: null, confidence: 0 };
 }
 
-/** Fallback: largest currency-like number on the page (low confidence). */
+const CURRENCY_PREFIX_RE = "(?:AED|USD|EUR|GBP|SAR|Dhs?|DH|Rs|₹|\\$|€|£)";
+
+/**
+ * Bank/POS transaction alerts and card receipts state the amount right after a
+ * keyword ("Purchase of AED 39.07", "You spent USD 5", "Payment of €12,50").
+ * This grabs that amount specifically, which matters because the same message
+ * usually also prints the account balance ("Avl Balance AED 9,940.98") — a much
+ * larger number that a naive "largest amount" would wrongly pick as the spend.
+ */
+export function findTransactionAmount(text: string): FieldGuess<number> {
+  const re = new RegExp(
+    "(?:purchase|payment|paid|spent|debited|charged|withdrawn|withdrawal|transaction|txn|amount)\\b[^\\d\\n]{0,15}" +
+      CURRENCY_PREFIX_RE +
+      "?\\s*([0-9][0-9.,]*[0-9]|[0-9])",
+    "i"
+  );
+  const m = text.match(re);
+  if (m) {
+    const n = parseMoneyToken(m[1]);
+    if (n !== null && n > 0) return { value: n, confidence: 0.85, raw: m[0].trim() };
+  }
+  return { value: null, confidence: 0 };
+}
+
+/** The merchant in a bank alert / card receipt: the name after "at". */
+export function findBankMerchant(text: string): FieldGuess<string> {
+  const m = text.match(/\bat\s+([A-Z0-9][A-Za-z0-9 &'.\-]{2,40}?)(?:\s*[,.]|\s+(?:Abu Dhabi|Dubai|Sharjah|UAE)\b|\n|$)/);
+  if (m) {
+    const name = m[1].trim().replace(/\s+/g, " ");
+    if (name.length >= 3) return { value: name, confidence: 0.7 };
+  }
+  return { value: null, confidence: 0 };
+}
+
+/** Fallback: largest currency-like number on the page, ignoring balance lines. */
 export function findLargestAmount(text: string): FieldGuess<number> {
-  const matches = [...text.matchAll(/(?:AED|USD|EUR|GBP|SAR|\$|€|£)\s*([0-9][0-9,]*\.?[0-9]{0,2})/gi)];
   let best: number | null = null;
   let raw = "";
-  for (const m of matches) {
-    const n = toNumber(m[1]);
-    if (n !== null && (best === null || n > best)) {
-      best = n;
-      raw = m[0];
+  for (const line of text.split(/\n/)) {
+    if (BALANCE_LINE_RE.test(line)) continue; // a running/available balance is not the spend
+    const withCur = [...line.matchAll(new RegExp(CURRENCY_PREFIX_RE + "\\s*([0-9][0-9.,]*[0-9])", "gi"))];
+    const pool = withCur.length ? withCur.map((m) => m[1]) : [...line.matchAll(/[0-9][0-9.,]*[.,][0-9]{2}(?![0-9])/g)].map((m) => m[0]);
+    for (const tok of pool) {
+      const n = parseMoneyToken(tok);
+      if (n !== null && (best === null || n > best)) {
+        best = n;
+        raw = tok;
+      }
     }
   }
-  if (best !== null) return { value: best, confidence: 0.4, raw };
-  // last resort: any decimal number
-  const anyNum = [...text.matchAll(/\b([0-9][0-9,]{1,9}\.[0-9]{2})\b/g)];
-  for (const m of anyNum) {
-    const n = toNumber(m[1]);
-    if (n !== null && (best === null || n > best)) best = n;
-  }
-  return { value: best, confidence: best !== null ? 0.25 : 0 };
+  return { value: best, confidence: best !== null ? 0.4 : 0, raw };
 }
 
 export function findVAT(text: string): FieldGuess<number> {
-  const labeled = findLabeledAmount(text, ["VAT amount", "VAT Amt", "VAT", "Tax amount", "Tax"]);
+  // "di cui IVA" (Italian), "TVA" (French), "VAT"/"Tax" (English).
+  const labeled = findLabeledAmount(text, ["VAT amount", "VAT Amt", "VAT", "di cui IVA", "IVA", "TVA", "Tax amount", "Tax"]);
   if (labeled.value !== null) return labeled;
 
   // Handle "VAT (5%): 1.48" / "VAT (5%) 1.48" where a percentage sits between the label and the amount.
