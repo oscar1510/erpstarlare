@@ -298,7 +298,7 @@ export function renderQuoteDocBody(q: QuoteDocData, logoDataUri?: string | null)
   <div style="max-width:820px;margin:0 auto;padding:40px;font-family:'Helvetica Neue',Arial,sans-serif;color:#0f172a;">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;">
       <div>
-        ${logoDataUri ? `<img src="${logoDataUri}" alt="Starflare" style="height:58px;width:auto;display:block;"/>` : starflareLogo()}
+        ${logoDataUri ? `<img src="${logoDataUri}" alt="Starflare" style="height:64px;width:auto;max-width:280px;object-fit:contain;display:block;"/>` : starflareLogo()}
         <div style="font-size:10px;letter-spacing:.14em;color:#94a3b8;font-weight:700;margin-top:2px;">${STARFLARE_COMPANY.tagline}</div>
         <div style="color:#334155;font-size:12px;margin-top:12px;line-height:1.5;">
           <div style="font-weight:700;color:#0f172a;">${STARFLARE_COMPANY.name}</div>
