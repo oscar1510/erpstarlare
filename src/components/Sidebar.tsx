@@ -20,6 +20,7 @@ export const NAV = [
   { href: "/documents", label: "Document Archive", icon: "🗂️" },
   { href: "/audit-log", label: "Audit Log", icon: "📜" },
   { href: "/reports", label: "Reports & Export", icon: "📈" },
+  { href: "/settings", label: "Settings", icon: "⚙️" },
 ];
 
 export function Sidebar() {

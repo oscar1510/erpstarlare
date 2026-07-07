@@ -1,5 +1,3 @@
-import { existsSync, readFileSync } from "fs";
-import path from "path";
 import {
   AlignmentType,
   BorderStyle,
@@ -65,28 +63,19 @@ function twoCol(left: Paragraph[], right: Paragraph[]) {
 }
 
 /** Builds a genuine .docx (Open XML) of the branded quotation/invoice. */
-export async function renderQuoteDocx(q: QuoteDocData): Promise<Buffer> {
+export async function renderQuoteDocx(q: QuoteDocData, logo?: { buffer: Buffer; mime: string } | null): Promise<Buffer> {
   const title = q.kind === "INVOICE" ? "INVOICE" : "QUOTATION";
   const totals = computeTotals(q);
   const extras = parseExtraLineItems(q.extraLineItems);
   const summary = packageSummaryLine(q);
   const showVat = q.vatMode !== "NONE" && totals.vat > 0;
 
-  // Use the official raster logo (PNG/JPG in public/) if present, else a text mark.
-  const logoPara = (() => {
-    for (const [rel, type] of [["public/starflare-logo.png", "png"], ["public/starflare-logo.jpg", "jpg"], ["public/starflare-logo.jpeg", "jpg"]] as const) {
-      const p = path.join(process.cwd(), rel);
-      if (existsSync(p)) {
-        try {
-          const data = readFileSync(p);
-          return new Paragraph({ children: [new ImageRun({ data, type: type as "png" | "jpg", transformation: { width: 190, height: 48 } })], spacing: { after: 40 } });
-        } catch {
-          /* fall through to text */
-        }
-      }
-    }
-    return para([run("STARFLARE", { bold: true, size: 22, color: PINK })]);
-  })();
+  // Use the uploaded/official raster logo (PNG/JPG) if we have one, else a text mark.
+  const logoType = logo?.mime.includes("png") ? "png" : logo?.mime.includes("jpeg") || logo?.mime.includes("jpg") ? "jpg" : null;
+  const logoPara =
+    logo && logoType
+      ? new Paragraph({ children: [new ImageRun({ data: logo.buffer, type: logoType, transformation: { width: 190, height: 48 } })], spacing: { after: 40 } })
+      : para([run("STARFLARE", { bold: true, size: 22, color: PINK })]);
 
   const header = twoCol(
     [

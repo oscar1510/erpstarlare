@@ -1,29 +1,4 @@
-import { existsSync, readFileSync } from "fs";
-import path from "path";
 import { formatMoney, formatDate } from "@/lib/format";
-
-/** Where the official brand logo lives, if the user drops it into the repo. */
-const LOGO_CANDIDATES: [string, string][] = [
-  ["public/starflare-logo.png", "image/png"],
-  ["public/starflare-logo.svg", "image/svg+xml"],
-  ["public/starflare-logo.jpg", "image/jpeg"],
-  ["public/starflare-logo.jpeg", "image/jpeg"],
-];
-
-/** Returns the official logo as a base64 data URI if one is in the repo, else null. */
-export function officialLogoDataUri(): string | null {
-  for (const [rel, mime] of LOGO_CANDIDATES) {
-    const p = path.join(process.cwd(), rel);
-    if (existsSync(p)) {
-      try {
-        return `data:${mime};base64,${readFileSync(p).toString("base64")}`;
-      } catch {
-        /* ignore and fall through */
-      }
-    }
-  }
-  return null;
-}
 
 /** Starflare's registered company details, shown as the issuer on every document. */
 export const STARFLARE_COMPANY = {
@@ -213,7 +188,7 @@ function esc(s: unknown): string {
  * both by the on-screen document view and the downloadable Word (.doc) route,
  * so the printed PDF and the Word file always match.
  */
-export function renderQuoteDocBody(q: QuoteDocData): string {
+export function renderQuoteDocBody(q: QuoteDocData, logoDataUri?: string | null): string {
   const title = q.kind === "INVOICE" ? "INVOICE" : "QUOTATION";
   const totals = computeTotals(q);
   const extras = parseExtraLineItems(q.extraLineItems);
@@ -323,7 +298,7 @@ export function renderQuoteDocBody(q: QuoteDocData): string {
   <div style="max-width:820px;margin:0 auto;padding:40px;font-family:'Helvetica Neue',Arial,sans-serif;color:#0f172a;">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;">
       <div>
-        ${officialLogoDataUri() ? `<img src="${officialLogoDataUri()}" alt="Starflare" style="height:58px;width:auto;display:block;"/>` : starflareLogo()}
+        ${logoDataUri ? `<img src="${logoDataUri}" alt="Starflare" style="height:58px;width:auto;display:block;"/>` : starflareLogo()}
         <div style="font-size:10px;letter-spacing:.14em;color:#94a3b8;font-weight:700;margin-top:2px;">${STARFLARE_COMPANY.tagline}</div>
         <div style="color:#334155;font-size:12px;margin-top:12px;line-height:1.5;">
           <div style="font-weight:700;color:#0f172a;">${STARFLARE_COMPANY.name}</div>

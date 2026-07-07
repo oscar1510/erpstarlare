@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { db } from "@/lib/db";
 import { renderQuoteDocx } from "@/lib/quote-docx";
+import { resolveLogo } from "@/lib/logo";
 
 /** Serves the branded document as a genuine .docx (Open XML) Word file. */
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -9,7 +10,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const quotation = await db.quotation.findUnique({ where: { id } });
   if (!quotation) return new Response("Not found", { status: 404 });
 
-  const buffer = await renderQuoteDocx(quotation);
+  const logo = await resolveLogo();
+  const buffer = await renderQuoteDocx(quotation, logo);
   const label = quotation.kind === "INVOICE" ? "Invoice" : "Quotation";
   const filename = `${label}-${quotation.number}.docx`;
 
