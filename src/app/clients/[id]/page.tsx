@@ -9,7 +9,7 @@ import { DataTable } from "@/components/ui/Table";
 import { DocumentList } from "@/components/DocumentList";
 import { formatDate, formatMoney } from "@/lib/format";
 import { CLIENT_STATUSES, CURRENCIES, PAYMENT_METHODS, PURCHASE_TYPES, SUBSCRIPTION_STATUSES, labelize } from "@/lib/constants";
-import { addPurchase, addSubscription, updateClient } from "../actions";
+import { addPurchase, addSubscription, updateClient, deleteClient } from "../actions";
 import Link from "next/link";
 
 export default async function ClientDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -31,7 +31,18 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
 
   return (
     <div className="max-w-4xl space-y-8">
-      <PageHeader title={client.name} description={client.companyName ?? undefined} actions={<StatusBadge status={client.status} />} />
+      <PageHeader
+        title={client.name}
+        description={client.companyName ?? undefined}
+        actions={
+          <div className="flex items-center gap-2">
+            <StatusBadge status={client.status} />
+            <form action={deleteClient.bind(null, id)}>
+              <button className="btn-secondary text-red-600 border-red-200 hover:bg-red-50" type="submit">🗑 Delete</button>
+            </form>
+          </div>
+        }
+      />
 
       <Section title="Profile">
         <form action={updateAction} className="card p-5 space-y-4">

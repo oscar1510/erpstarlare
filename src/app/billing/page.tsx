@@ -9,7 +9,7 @@ import { labelize } from "@/lib/constants";
 import Link from "next/link";
 
 export default async function BillingPage() {
-  const invoices = await db.invoice.findMany({ orderBy: { invoiceDate: "desc" } });
+  const invoices = await db.invoice.findMany({ where: { deletedAt: null }, orderBy: { invoiceDate: "desc" } });
 
   return (
     <div>
@@ -23,6 +23,9 @@ export default async function BillingPage() {
             </Link>
             <Link href="/billing/documents" className="btn-secondary">
               📄 Quotations
+            </Link>
+            <Link href="/billing/trash" className="btn-secondary">
+              🗑 Trash
             </Link>
             <Link href="/billing/documents/new?kind=QUOTATION" className="btn-secondary">
               📝 Create quotation

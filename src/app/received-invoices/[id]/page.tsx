@@ -8,7 +8,7 @@ import { Select } from "@/components/ui/Field";
 import { DocumentList } from "@/components/DocumentList";
 import { formatDate, formatMoney } from "@/lib/format";
 import { RECEIVED_INVOICE_STATUSES, labelize } from "@/lib/constants";
-import { updateReceivedInvoiceStatus } from "../actions";
+import { updateReceivedInvoiceStatus, deleteReceivedInvoice } from "../actions";
 
 export default async function ReceivedInvoiceDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -24,7 +24,18 @@ export default async function ReceivedInvoiceDetailPage({ params }: { params: Pr
 
   return (
     <div className="max-w-3xl space-y-6">
-      <PageHeader title={ri.vendorName ?? "Supplier invoice"} description={ri.invoiceNumber ?? undefined} actions={<StatusBadge status={ri.paymentStatus} />} />
+      <PageHeader
+        title={ri.vendorName ?? "Supplier invoice"}
+        description={ri.invoiceNumber ?? undefined}
+        actions={
+          <div className="flex items-center gap-2">
+            <StatusBadge status={ri.paymentStatus} />
+            <form action={deleteReceivedInvoice.bind(null, id)}>
+              <button className="btn-secondary text-red-600 border-red-200 hover:bg-red-50" type="submit">🗑 Delete</button>
+            </form>
+          </div>
+        }
+      />
 
       <Section title="Details">
         <div className="card p-5 grid grid-cols-2 gap-4 text-sm">

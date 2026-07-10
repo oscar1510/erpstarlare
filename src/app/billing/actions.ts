@@ -337,3 +337,53 @@ export async function confirmStripeInvoice(documentId: string, formData: FormDat
   revalidatePath("/billing");
   redirect(`/billing/documents/${brandedDoc.id}?saved=${encodeURIComponent(`Invoice ${number} created`)}`);
 }
+
+// ---- Trash: invoices are soft-deleted (recoverable) rather than removed ----
+
+export async function trashInvoice(id: string) {
+  const now = new Date();
+  await db.invoice.update({ where: { id }, data: { deletedAt: now } });
+  await db.quotation.updateMany({ where: { invoiceId: id }, data: { deletedAt: now } });
+  revalidatePath("/billing");
+  revalidatePath("/");
+  redirect("/billing?saved=Invoice+moved+to+Trash");
+}
+
+export async function restoreInvoice(id: string) {
+  await db.invoice.update({ where: { id }, data: { deletedAt: null } });
+  await db.quotation.updateMany({ where: { invoiceId: id }, data: { deletedAt: null } });
+  revalidatePath("/billing");
+  revalidatePath("/billing/trash");
+  redirect("/billing?saved=Invoice+restored");
+}
+
+export async function deleteInvoiceForever(id: string) {
+  const inv = await db.invoice.findUnique({ where: { id } });
+  await db.quotation.deleteMany({ where: { invoiceId: id } });
+  if (inv?.ledgerEntryId) await db.ledgerEntry.delete({ where: { id: inv.ledgerEntryId } }).catch(() => {});
+  await db.payment.deleteMany({ where: { invoiceId: id } });
+  await db.purchase.deleteMany({ where: { invoiceId: id } });
+  await db.document.updateMany({ where: { invoiceId: id }, data: { invoiceId: null } });
+  await db.invoice.delete({ where: { id } });
+  revalidatePath("/billing/trash");
+  redirect("/billing/trash?saved=Invoice+permanently+deleted");
+}
+
+/** Standalone quotations (not linked to an invoice) are also soft-deleted to Trash. */
+export async function trashQuotation(id: string) {
+  await db.quotation.update({ where: { id }, data: { deletedAt: new Date() } });
+  revalidatePath("/billing/documents");
+  redirect("/billing/documents?saved=Quotation+moved+to+Trash");
+}
+
+export async function restoreQuotation(id: string) {
+  await db.quotation.update({ where: { id }, data: { deletedAt: null } });
+  revalidatePath("/billing/trash");
+  redirect("/billing/documents?saved=Quotation+restored");
+}
+
+export async function deleteQuotationForever(id: string) {
+  await db.quotation.delete({ where: { id } });
+  revalidatePath("/billing/trash");
+  redirect("/billing/trash?saved=Quotation+permanently+deleted");
+}

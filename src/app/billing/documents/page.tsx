@@ -9,7 +9,7 @@ import { computeTotals } from "@/lib/quote-doc";
 import Link from "next/link";
 
 export default async function GeneratedDocumentsPage() {
-  const docs = await db.quotation.findMany({ orderBy: { createdAt: "desc" } });
+  const docs = await db.quotation.findMany({ where: { deletedAt: null }, orderBy: { createdAt: "desc" } });
 
   return (
     <div>

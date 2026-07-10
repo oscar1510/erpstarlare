@@ -81,6 +81,16 @@ export async function uploadExpenseReceipts(formData: FormData) {
   }
 }
 
+export async function deleteExpense(id: string) {
+  const expense = await db.expense.findUnique({ where: { id } });
+  if (expense?.ledgerEntryId) await db.ledgerEntry.delete({ where: { id: expense.ledgerEntryId } }).catch(() => {});
+  if (expense?.documentId) await db.document.delete({ where: { id: expense.documentId } }).catch(() => {});
+  await db.expense.delete({ where: { id } });
+  revalidatePath("/expenses");
+  revalidatePath("/");
+  redirect("/expenses?saved=Expense+deleted");
+}
+
 export async function updateExpense(id: string, formData: FormData) {
   const before = await db.expense.findUniqueOrThrow({ where: { id } });
 

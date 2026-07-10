@@ -45,7 +45,7 @@ export default async function DashboardPage({
     hrCompDue,
     reimbursementsDue,
   ] = await Promise.all([
-    db.invoice.findMany({ where: { invoiceDate: dateFilter } }),
+    db.invoice.findMany({ where: { invoiceDate: dateFilter, deletedAt: null } }),
     db.ledgerEntry.findMany({ where: { type: "EXPENSE", date: dateFilter } }),
     db.payment.findMany({ where: { date: dateFilter } }),
     db.client.findMany({ where: { status: "ACTIVE" } }),

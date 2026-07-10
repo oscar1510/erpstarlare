@@ -43,6 +43,16 @@ export async function createClient(formData: FormData) {
   redirect(`/clients/${client.id}`);
 }
 
+export async function deleteClient(id: string) {
+  // Unlink from invoices (keep the invoices), remove the client's purchases.
+  await db.invoice.updateMany({ where: { clientId: id }, data: { clientId: null } });
+  await db.purchase.deleteMany({ where: { clientId: id } }).catch(() => {});
+  await db.subscription.deleteMany({ where: { clientId: id } }).catch(() => {});
+  await db.client.delete({ where: { id } });
+  revalidatePath("/clients");
+  redirect("/clients?saved=Client+deleted");
+}
+
 export async function updateClient(id: string, formData: FormData) {
   const before = await db.client.findUniqueOrThrow({ where: { id } });
   const client = await db.client.update({

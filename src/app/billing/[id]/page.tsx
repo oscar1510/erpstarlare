@@ -7,7 +7,7 @@ import { StatusBadge } from "@/components/ui/Badge";
 import { Select } from "@/components/ui/Field";
 import { formatDate, formatMoney } from "@/lib/format";
 import { INVOICE_STATUSES, labelize } from "@/lib/constants";
-import { sendInvoiceEmail, updateInvoiceStatus } from "../actions";
+import { sendInvoiceEmail, updateInvoiceStatus, trashInvoice } from "../actions";
 
 export default async function InvoiceDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -31,6 +31,11 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
     await sendInvoiceEmail(id);
   }
 
+  async function trash() {
+    "use server";
+    await trashInvoice(id);
+  }
+
   return (
     <div className="max-w-3xl space-y-6">
       <PageHeader
@@ -49,6 +54,9 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
             )}
             <form action={emailInvoice}>
               <button className="btn-primary" type="submit">✉️ Send to client</button>
+            </form>
+            <form action={trash}>
+              <button className="btn-secondary text-red-600 border-red-200 hover:bg-red-50" type="submit">🗑 Delete</button>
             </form>
           </>
         }

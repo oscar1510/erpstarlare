@@ -211,6 +211,8 @@ model Invoice {
   sentAt            DateTime?
   sentToEmail       String?
 
+  deletedAt         DateTime? // soft-delete: moved to Trash, recoverable
+
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
@@ -293,6 +295,7 @@ model Quotation {
   validUntil DateTime?
   status     String    @default("DRAFT")
   invoiceId  String? // linked billing Invoice when kind = INVOICE
+  deletedAt  DateTime? // soft-delete: moved to Trash, recoverable
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

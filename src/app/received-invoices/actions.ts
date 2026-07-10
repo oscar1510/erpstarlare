@@ -83,6 +83,17 @@ export async function confirmReceivedInvoice(documentId: string, formData: FormD
   redirect(`/received-invoices/${ri.id}`);
 }
 
+export async function deleteReceivedInvoice(id: string) {
+  const ri = await db.receivedInvoice.findUnique({ where: { id } });
+  if (ri?.ledgerEntryId) await db.ledgerEntry.delete({ where: { id: ri.ledgerEntryId } }).catch(() => {});
+  if (ri?.documentId) await db.document.delete({ where: { id: ri.documentId } }).catch(() => {});
+  await removeAutoDeadline("ReceivedInvoice", id, "Supplier Invoice Due");
+  await db.receivedInvoice.delete({ where: { id } });
+  revalidatePath("/received-invoices");
+  revalidatePath("/");
+  redirect("/received-invoices?saved=Received+invoice+deleted");
+}
+
 export async function updateReceivedInvoiceStatus(id: string, status: string) {
   const ri = await db.receivedInvoice.update({ where: { id }, data: { paymentStatus: status } });
 

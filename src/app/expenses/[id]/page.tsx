@@ -8,7 +8,7 @@ import { ConfidenceBadge, StatusBadge } from "@/components/ui/Badge";
 import { ActorSelect } from "@/components/ActorSelect";
 import { formatDateInput, formatMoney } from "@/lib/format";
 import { CURRENCIES, EXPENSE_CATEGORIES, EXPENSE_STATUSES, PAYMENT_METHODS, labelize } from "@/lib/constants";
-import { updateExpense } from "../actions";
+import { updateExpense, deleteExpense } from "../actions";
 
 export default async function ExpenseDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -30,7 +30,18 @@ export default async function ExpenseDetailPage({ params }: { params: Promise<{ 
 
   return (
     <div className="max-w-3xl space-y-6">
-      <PageHeader title={expense.vendor ?? "Expense"} description={formatMoney(expense.amount, expense.currency)} actions={<StatusBadge status={expense.status} />} />
+      <PageHeader
+        title={expense.vendor ?? "Expense"}
+        description={formatMoney(expense.amount, expense.currency)}
+        actions={
+          <div className="flex items-center gap-2">
+            <StatusBadge status={expense.status} />
+            <form action={deleteExpense.bind(null, id)}>
+              <button className="btn-secondary text-red-600 border-red-200 hover:bg-red-50" type="submit">🗑 Delete</button>
+            </form>
+          </div>
+        }
+      />
 
       {expense.possibleDuplicate && (
         <div className="card p-4 bg-amber-50 border-amber-300 text-sm text-amber-900">

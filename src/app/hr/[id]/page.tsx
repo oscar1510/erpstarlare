@@ -12,6 +12,7 @@ import { CURRENCIES, COMPENSATION_STATUSES, PAYMENT_METHODS, PERSON_STATUSES, PE
 import {
   addCompensationPayment,
   addReimbursement,
+  deletePerson,
   updateCompensationStatus,
   updatePerson,
   updateReimbursementStatus,
@@ -39,7 +40,14 @@ export default async function PersonDetailPage({ params }: { params: Promise<{ i
       <PageHeader
         title={`${person.firstName} ${person.lastName}`}
         description={person.role ?? undefined}
-        actions={<StatusBadge status={person.status} />}
+        actions={
+          <div className="flex items-center gap-2">
+            <StatusBadge status={person.status} />
+            <form action={deletePerson.bind(null, id)}>
+              <button className="btn-secondary text-red-600 border-red-200 hover:bg-red-50" type="submit">🗑 Delete</button>
+            </form>
+          </div>
+        }
       />
 
       <Section title="Profile">

@@ -376,6 +376,22 @@ export async function addReimbursement(personId: string, formData: FormData) {
   revalidatePath(`/hr/${personId}`);
 }
 
+export async function deletePerson(id: string) {
+  // Remove the person's HR records and deadlines, then the person.
+  const comps = await db.compensationPayment.findMany({ where: { personId: id } });
+  const reims = await db.reimbursement.findMany({ where: { personId: id } });
+  const ledgerIds = [...comps, ...reims].map((r) => r.ledgerEntryId).filter((x): x is string => !!x);
+  if (ledgerIds.length) await db.ledgerEntry.deleteMany({ where: { id: { in: ledgerIds } } });
+  await db.compensationPayment.deleteMany({ where: { personId: id } });
+  await db.reimbursement.deleteMany({ where: { personId: id } });
+  await removeAutoDeadline("Person", id, "HR Contract");
+  await removeAutoDeadline("Person", id, "Visa / Permit");
+  await db.person.delete({ where: { id } });
+  revalidatePath("/hr");
+  revalidatePath("/");
+  redirect("/hr?saved=Person+deleted");
+}
+
 export async function updateReimbursementStatus(id: string, status: string) {
   const before = await db.reimbursement.findUniqueOrThrow({ where: { id } });
   const person = await db.person.findUnique({ where: { id: before.personId } });
