@@ -8,6 +8,7 @@ import { Select } from "@/components/ui/Field";
 import { DocumentList } from "@/components/DocumentList";
 import { formatDate, formatMoney } from "@/lib/format";
 import { RECEIVED_INVOICE_STATUSES, labelize } from "@/lib/constants";
+import { DeleteButton } from "@/components/DeleteButton";
 import { updateReceivedInvoiceStatus, deleteReceivedInvoice } from "../actions";
 
 export default async function ReceivedInvoiceDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -30,9 +31,7 @@ export default async function ReceivedInvoiceDetailPage({ params }: { params: Pr
         actions={
           <div className="flex items-center gap-2">
             <StatusBadge status={ri.paymentStatus} />
-            <form action={deleteReceivedInvoice.bind(null, id)}>
-              <button className="btn-secondary text-red-600 border-red-200 hover:bg-red-50" type="submit">🗑 Delete</button>
-            </form>
+            <DeleteButton action={deleteReceivedInvoice.bind(null, id)} confirm="Delete this supplier invoice? This cannot be undone." />
           </div>
         }
       />

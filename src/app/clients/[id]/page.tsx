@@ -9,6 +9,7 @@ import { DataTable } from "@/components/ui/Table";
 import { DocumentList } from "@/components/DocumentList";
 import { formatDate, formatMoney } from "@/lib/format";
 import { CLIENT_STATUSES, CURRENCIES, PAYMENT_METHODS, PURCHASE_TYPES, SUBSCRIPTION_STATUSES, labelize } from "@/lib/constants";
+import { DeleteButton } from "@/components/DeleteButton";
 import { addPurchase, addSubscription, updateClient, deleteClient } from "../actions";
 import Link from "next/link";
 
@@ -37,9 +38,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
         actions={
           <div className="flex items-center gap-2">
             <StatusBadge status={client.status} />
-            <form action={deleteClient.bind(null, id)}>
-              <button className="btn-secondary text-red-600 border-red-200 hover:bg-red-50" type="submit">🗑 Delete</button>
-            </form>
+            <DeleteButton action={deleteClient.bind(null, id)} confirm="Delete this client? Their purchases are removed and invoices unlinked. This cannot be undone." />
           </div>
         }
       />

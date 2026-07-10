@@ -9,6 +9,7 @@ import { DocumentUploader } from "@/components/DocumentUploader";
 import { DocumentList } from "@/components/DocumentList";
 import { formatDate, formatDateInput, formatMoney } from "@/lib/format";
 import { CURRENCIES, COMPENSATION_STATUSES, PAYMENT_METHODS, PERSON_STATUSES, PERSON_TYPES, REIMBURSEMENT_STATUSES, labelize } from "@/lib/constants";
+import { DeleteButton } from "@/components/DeleteButton";
 import {
   addCompensationPayment,
   addReimbursement,
@@ -43,9 +44,7 @@ export default async function PersonDetailPage({ params }: { params: Promise<{ i
         actions={
           <div className="flex items-center gap-2">
             <StatusBadge status={person.status} />
-            <form action={deletePerson.bind(null, id)}>
-              <button className="btn-secondary text-red-600 border-red-200 hover:bg-red-50" type="submit">🗑 Delete</button>
-            </form>
+            <DeleteButton action={deletePerson.bind(null, id)} confirm="Delete this person and all their HR records? This cannot be undone." />
           </div>
         }
       />

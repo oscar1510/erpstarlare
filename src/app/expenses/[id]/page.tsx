@@ -8,6 +8,7 @@ import { ConfidenceBadge, StatusBadge } from "@/components/ui/Badge";
 import { ActorSelect } from "@/components/ActorSelect";
 import { formatDateInput, formatMoney } from "@/lib/format";
 import { CURRENCIES, EXPENSE_CATEGORIES, EXPENSE_STATUSES, PAYMENT_METHODS, labelize } from "@/lib/constants";
+import { DeleteButton } from "@/components/DeleteButton";
 import { updateExpense, deleteExpense } from "../actions";
 
 export default async function ExpenseDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -36,9 +37,7 @@ export default async function ExpenseDetailPage({ params }: { params: Promise<{ 
         actions={
           <div className="flex items-center gap-2">
             <StatusBadge status={expense.status} />
-            <form action={deleteExpense.bind(null, id)}>
-              <button className="btn-secondary text-red-600 border-red-200 hover:bg-red-50" type="submit">🗑 Delete</button>
-            </form>
+            <DeleteButton action={deleteExpense.bind(null, id)} confirm="Delete this expense? This cannot be undone." />
           </div>
         }
       />
