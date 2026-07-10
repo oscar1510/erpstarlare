@@ -175,8 +175,30 @@ export async function uploadStripeInvoice(formData: FormData) {
 export async function confirmStripeInvoice(documentId: string, formData: FormData) {
   const document = await db.document.findUniqueOrThrow({ where: { id: documentId } });
 
-  const clientId = str(formData, "clientId");
-  const client = clientId ? await db.client.findUnique({ where: { id: clientId } }) : null;
+  let clientId = str(formData, "clientId");
+  let client = clientId ? await db.client.findUnique({ where: { id: clientId } }) : null;
+
+  // "Add as a new client": create a Client from the extracted/edited details and
+  // link the invoice to it, so the customer is saved for next time.
+  if (!clientId && str(formData, "createClient") === "on") {
+    const name = str(formData, "clientName");
+    if (name) {
+      client = await db.client.create({
+        data: {
+          name,
+          companyName: name,
+          mainEmail: str(formData, "clientEmail"),
+          billingEmail: str(formData, "clientEmail"),
+          phone: str(formData, "clientPhone"),
+          address: str(formData, "clientAddress"),
+          trn: str(formData, "clientTrn"),
+          status: "ACTIVE",
+        },
+      });
+      clientId = client.id;
+    }
+  }
+
   const invoiceDate = parseFormDate(formData.get("invoiceDate")) ?? new Date();
   const total = parseFormNumber(formData.get("amount")) ?? 0;
   const isPaid = str(formData, "isPaid") === "yes";
@@ -313,5 +335,5 @@ export async function confirmStripeInvoice(documentId: string, formData: FormDat
   });
 
   revalidatePath("/billing");
-  redirect(`/billing/documents/${brandedDoc.id}`);
+  redirect(`/billing/documents/${brandedDoc.id}?saved=${encodeURIComponent(`Invoice ${number} created`)}`);
 }

@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import { db } from "@/lib/db";
 import { PageHeader, Section } from "@/components/ui/Page";
 import { DocumentUploader } from "@/components/DocumentUploader";
+import { SubmitButton } from "@/components/SubmitButton";
 import { uploadCompanyLogo, removeCompanyLogo } from "./actions";
 
 export default async function SettingsPage() {
@@ -34,7 +35,7 @@ export default async function SettingsPage() {
           <form action={uploadCompanyLogo} className="space-y-3">
             <DocumentUploader name="file" label="Upload logo" accept="image/*" required />
             <div className="flex justify-end">
-              <button className="btn-primary" type="submit">Save logo</button>
+              <SubmitButton pendingLabel="Saving logo…">Save logo</SubmitButton>
             </div>
           </form>
         </div>

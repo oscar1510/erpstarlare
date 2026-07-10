@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { PageHeader, Section } from "@/components/ui/Page";
 import { Field, FormGrid, Select, TextArea, TextInput } from "@/components/ui/Field";
 import { ConfidenceBadge } from "@/components/ui/Badge";
+import { SubmitButton } from "@/components/SubmitButton";
 import { CURRENCIES } from "@/lib/constants";
 import { confirmStripeInvoice } from "../../../actions";
 import { formatDateInput } from "@/lib/format";
@@ -103,10 +104,11 @@ export default async function ReviewStripeInvoicePage({ params }: { params: Prom
           <Field label="Description">
             <TextArea name="description" defaultValue={fields.description?.value ?? ""} rows={2} />
           </Field>
+          <label className="flex items-center gap-2 text-sm text-slate-700">
+            <input type="checkbox" name="createClient" defaultChecked={!suggestedClient} /> Also add this as a new client (saves the details above to Clients)
+          </label>
           <div className="flex justify-end">
-            <button className="btn-primary" type="submit">
-              Confirm & create Starflare invoice
-            </button>
+            <SubmitButton pendingLabel="Creating invoice…">Confirm &amp; create Starflare invoice</SubmitButton>
           </div>
         </form>
       </Section>

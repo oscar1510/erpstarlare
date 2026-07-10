@@ -142,5 +142,5 @@ export async function createGeneratedDocument(formData: FormData) {
   });
 
   revalidatePath("/billing");
-  redirect(`/billing/documents/${quotation.id}`);
+  redirect(`/billing/documents/${quotation.id}?saved=${encodeURIComponent(`${kind === "INVOICE" ? "Invoice" : "Quotation"} ${number} generated`)}`);
 }

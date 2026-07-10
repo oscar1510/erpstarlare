@@ -5,6 +5,7 @@ import { parseFileRef } from "@/lib/file-refs";
 import { trimLogoWhitespace } from "@/lib/logo";
 import { logAudit } from "@/lib/audit";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 export async function uploadCompanyLogo(formData: FormData) {
   const fileRef = parseFileRef(formData, "file");
@@ -45,6 +46,7 @@ export async function uploadCompanyLogo(formData: FormData) {
 
   revalidatePath("/settings");
   revalidatePath("/billing/documents");
+  redirect("/settings?saved=Logo+updated");
 }
 
 export async function removeCompanyLogo() {

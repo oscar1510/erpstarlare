@@ -19,7 +19,7 @@ function starflareLogo(): string {
   // purple → blue gradient. Self-contained SVG so it renders in the print/PDF
   // view without an external asset. Coordinates verified by rendering.
   return `
-    <svg width="270" height="77" viewBox="0 0 700 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Starflare">
+    <svg width="265" height="77" viewBox="14 0 686 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Starflare">
       <defs>
         <linearGradient id="sfg" x1="0" y1="0" x2="1" y2="0">
           <stop offset="0" stop-color="#ec1180"/>

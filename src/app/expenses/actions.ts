@@ -73,10 +73,11 @@ export async function uploadExpenseReceipts(formData: FormData) {
   });
 
   revalidatePath("/expenses");
+  const msg = encodeURIComponent(`${fileRefs.length} expense${fileRefs.length > 1 ? "s" : ""} scanned`);
   if (createdIds.length === 1) {
-    redirect(`/expenses/${createdIds[0]}`);
+    redirect(`/expenses/${createdIds[0]}?saved=${msg}`);
   } else {
-    redirect(`/expenses?highlight=${createdIds.join(",")}`);
+    redirect(`/expenses?highlight=${createdIds.join(",")}&saved=${msg}`);
   }
 }
 

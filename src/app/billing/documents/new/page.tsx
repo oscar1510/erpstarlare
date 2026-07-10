@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { PageHeader, Section } from "@/components/ui/Page";
 import { Field, FormGrid, Select, TextArea, TextInput } from "@/components/ui/Field";
 import { ClientLinkSelect } from "@/components/ClientLinkSelect";
+import { SubmitButton } from "@/components/SubmitButton";
 import { CURRENCIES, PAYMENT_METHODS } from "@/lib/constants";
 import { FIXED_ACCESS_ITEMS } from "@/lib/quote-doc";
 import { createGeneratedDocument } from "../actions";
@@ -204,9 +205,7 @@ export default async function NewDocumentPage({ searchParams }: { searchParams: 
         </Section>
 
         <div className="flex justify-end">
-          <button className="btn-primary" type="submit">
-            Generate {isInvoice ? "invoice" : "quotation"}
-          </button>
+          <SubmitButton pendingLabel="Generating…">Generate {isInvoice ? "invoice" : "quotation"}</SubmitButton>
         </div>
       </form>
     </div>

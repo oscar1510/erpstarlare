@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import "./globals.css";
 import { Sidebar } from "@/components/Sidebar";
 import { TopBar } from "@/components/TopBar";
+import { FlashToast } from "@/components/FlashToast";
 
 export const metadata: Metadata = {
   title: "Starflare ERP",
@@ -12,6 +14,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body>
+        <Suspense>
+          <FlashToast />
+        </Suspense>
         <div className="flex min-h-screen">
           <Sidebar />
           <div className="flex-1 min-w-0 flex flex-col">
