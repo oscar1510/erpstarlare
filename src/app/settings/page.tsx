@@ -108,9 +108,9 @@ export default async function SettingsPage() {
           <div>
             <div className="font-semibold text-red-800">Delete all data</div>
             <p className="text-sm text-red-700/90 mt-1">
-              Permanently erases every client, invoice, expense, document, payment and record so you can start entering real
-              data from scratch. Your company logo is kept. <strong>This cannot be undone</strong> — download a backup first if
-              in doubt.
+              Permanently erases every client, invoice, expense, payment and record, <strong>plus all uploaded files</strong>
+              {" "}(receipts, PDFs, ID photos), so you can start entering real data from scratch. Your company logo and saved
+              backups are kept. <strong>This cannot be undone</strong> — download a backup first if in doubt.
             </p>
           </div>
           <WipeDataForm action={wipeAllData} />

@@ -5,7 +5,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { MobileNav } from "./MobileNav";
 
-export function TopBar() {
+export function TopBar({ showLogout, logoutAction }: { showLogout?: boolean; logoutAction?: () => void }) {
   const router = useRouter();
   const [q, setQ] = useState("");
 
@@ -29,6 +29,13 @@ export function TopBar() {
       <Link href="/expenses/scan" className="btn-primary whitespace-nowrap px-2.5 sm:px-3">
         🧾 <span className="hidden sm:inline">Scan expense</span>
       </Link>
+      {showLogout && logoutAction && (
+        <form action={logoutAction}>
+          <button type="submit" className="btn-ghost whitespace-nowrap px-2.5" title="Log out">
+            🔒 <span className="hidden sm:inline">Log out</span>
+          </button>
+        </form>
+      )}
     </header>
   );
 }

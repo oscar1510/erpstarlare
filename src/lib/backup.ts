@@ -89,6 +89,33 @@ export async function wipeAll(opts: { keepSettings?: boolean } = {}): Promise<Re
 }
 
 /**
+ * Delete every uploaded file (receipts, scanned PDFs, ID photos, …) from Blob
+ * storage, while KEEPING the company logo (`logos/`) and the JSON backups
+ * (`backups/`). Used by the "delete all data" fresh-start so orphaned files
+ * don't linger. Safe no-op if Blob isn't configured.
+ */
+export async function purgeUploadedFiles(): Promise<number> {
+  try {
+    const { list, del } = await import("@vercel/blob");
+    let deleted = 0;
+    let cursor: string | undefined;
+    do {
+      const page = await list({ cursor, limit: 1000 });
+      const stale = page.blobs.filter((b) => !b.pathname.startsWith("logos/") && !b.pathname.startsWith("backups/"));
+      if (stale.length) {
+        await del(stale.map((b) => b.url));
+        deleted += stale.length;
+      }
+      cursor = page.hasMore ? page.cursor : undefined;
+    } while (cursor);
+    return deleted;
+  } catch (err) {
+    console.error("[backup] purgeUploadedFiles failed:", err);
+    return 0;
+  }
+}
+
+/**
  * Restore a snapshot produced by {@link exportAll}. Replaces all current data
  * (wipes first, including Settings, so the restore is exact). Prisma accepts
  * ISO date strings for DateTime fields, so the JSON round-trips as-is.

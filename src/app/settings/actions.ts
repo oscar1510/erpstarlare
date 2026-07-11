@@ -73,23 +73,26 @@ export async function wipeAllData(formData: FormData) {
     redirect("/settings?saved=" + encodeURIComponent("Type DELETE to confirm — nothing was deleted."));
   }
 
-  const { wipeAll } = await import("@/lib/backup");
+  const { wipeAll, purgeUploadedFiles } = await import("@/lib/backup");
   const deleted = await wipeAll({ keepSettings: true });
   const total = Object.values(deleted).reduce((s, n) => s + n, 0);
+  // Also remove the uploaded files themselves (receipts, PDFs, ID photos),
+  // keeping only the company logo and the JSON backups.
+  const filesDeleted = await purgeUploadedFiles();
 
   await logAudit({
     action: "deleted",
     section: "Settings",
     recordType: "Database",
     recordId: "all",
-    summary: `Wiped all data (${total} records) for a fresh start`,
+    summary: `Wiped all data (${total} records, ${filesDeleted} files) for a fresh start`,
     performedByType: "OSCAR",
     performedByLabel: "Oscar",
   });
 
   // Everything changed — revalidate the whole app.
   revalidatePath("/", "layout");
-  redirect("/settings?saved=" + encodeURIComponent(`All data deleted (${total} records). You can now enter real data.`));
+  redirect("/settings?saved=" + encodeURIComponent(`All data deleted (${total} records, ${filesDeleted} files). You can now enter real data.`));
 }
 
 /** Restores a full snapshot produced by the "Download backup" export / daily backup. */
