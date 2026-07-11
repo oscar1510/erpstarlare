@@ -85,7 +85,10 @@ export async function updateInvoiceStatus(id: string, status: string, paidDateIn
   // the date the user supplied, else keep any existing paid date, else today.
   const data: { status: string; paidDate?: Date | null; account?: string | null } = { status };
   if (status === "PAID") {
-    data.paidDate = paidDateInput ?? before.paidDate ?? new Date();
+    // Default the paid date to the invoice's own date — NOT "today" — so an
+    // invoice dated in January that you simply mark paid counts in January, not
+    // in the current month. Only an explicit paid date overrides this.
+    data.paidDate = paidDateInput ?? before.paidDate ?? before.invoiceDate;
   }
   if (account) data.account = account;
   const invoice = await db.invoice.update({ where: { id }, data });
@@ -236,6 +239,31 @@ export async function updateInvoiceDetails(id: string, formData: FormData) {
   revalidatePath("/billing");
   revalidatePath("/");
   redirect(`/billing/${id}?saved=${encodeURIComponent("Invoice updated")}`);
+}
+
+/**
+ * One-click cleanup: set every paid invoice's paid date equal to its invoice
+ * date, and align the linked ledger/payment dates. Fixes historical invoices
+ * whose paid date was accidentally recorded as "today" (so they showed up in the
+ * wrong month on the dashboard). Individual invoices can still be edited after.
+ */
+export async function alignPaidDatesToInvoiceDates() {
+  const invoices = await db.invoice.findMany({ where: { status: "PAID", deletedAt: null } });
+  let fixed = 0;
+  for (const inv of invoices) {
+    const target = inv.invoiceDate;
+    if (!inv.paidDate || inv.paidDate.getTime() !== target.getTime()) {
+      await db.invoice.update({ where: { id: inv.id }, data: { paidDate: target } });
+      if (inv.ledgerEntryId) {
+        await db.ledgerEntry.update({ where: { id: inv.ledgerEntryId }, data: { date: target } }).catch(() => {});
+      }
+      await db.payment.updateMany({ where: { invoiceId: inv.id }, data: { date: target } });
+      fixed++;
+    }
+  }
+  revalidatePath("/billing");
+  revalidatePath("/");
+  redirect(`/billing?saved=${encodeURIComponent(`Aligned paid dates for ${fixed} invoice(s)`)}`);
 }
 
 export async function sendInvoiceEmail(id: string) {
