@@ -94,8 +94,11 @@ export async function deleteReceivedInvoice(id: string) {
   redirect("/received-invoices?saved=Received+invoice+deleted");
 }
 
-export async function updateReceivedInvoiceStatus(id: string, status: string) {
-  const ri = await db.receivedInvoice.update({ where: { id }, data: { paymentStatus: status } });
+export async function updateReceivedInvoiceStatus(id: string, status: string, account?: string | null) {
+  const ri = await db.receivedInvoice.update({
+    where: { id },
+    data: { paymentStatus: status, ...(account ? { account } : {}) },
+  });
 
   if (status === "PAID" && !ri.ledgerEntryId) {
     const ledgerEntry = await db.ledgerEntry.create({
@@ -106,6 +109,7 @@ export async function updateReceivedInvoiceStatus(id: string, status: string) {
         amount: ri.amount ?? 0,
         currency: ri.currency,
         vendorName: ri.vendorName,
+        account: ri.account,
         vat: ri.vat,
         sourceModule: "ReceivedInvoice",
         sourceId: ri.id,

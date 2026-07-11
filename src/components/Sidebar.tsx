@@ -7,6 +7,7 @@ export const NAV = [
   { href: "/", label: "KPI Dashboard", icon: "📊" },
   { href: "/expenses/scan", label: "Quick Expense Scanner", icon: "🧾", highlight: true },
   { href: "/billing", label: "Billing / Invoices", icon: "💳" },
+  { href: "/expenses", label: "Expenses", icon: "🧾" },
   { href: "/clients", label: "Clients / Purchases", icon: "🤝" },
   { href: "/payments", label: "Payments & Reconciliation", icon: "🔁" },
   { href: "/received-invoices", label: "Received Invoices", icon: "📥" },

@@ -5,7 +5,7 @@ import { SubmitButton } from "@/components/SubmitButton";
 import { PageHeader } from "@/components/ui/Page";
 import { Field, FormGrid, Select, TextArea, TextInput } from "@/components/ui/Field";
 import { DocumentUploader } from "@/components/DocumentUploader";
-import { CURRENCIES, PAYMENT_METHODS, RECONCILIATION_STATUSES, labelize } from "@/lib/constants";
+import { CURRENCIES, PAYMENT_ACCOUNTS, PAYMENT_METHODS, RECONCILIATION_STATUSES, labelize } from "@/lib/constants";
 import { createPayment } from "../actions";
 
 export default async function NewPaymentPage() {
@@ -36,6 +36,9 @@ export default async function NewPaymentPage() {
           </Field>
           <Field label="Payment method">
             <Select name="method" options={PAYMENT_METHODS.map((m) => ({ value: m, label: m }))} placeholder="Select..." />
+          </Field>
+          <Field label="Account (from / into)">
+            <Select name="account" options={PAYMENT_ACCOUNTS.map((a) => ({ value: a, label: a }))} placeholder="Select account..." />
           </Field>
           <Field label="Payer">
             <TextInput name="payer" />

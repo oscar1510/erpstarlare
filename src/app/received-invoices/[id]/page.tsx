@@ -8,7 +8,7 @@ import { StatusBadge } from "@/components/ui/Badge";
 import { Select } from "@/components/ui/Field";
 import { DocumentList } from "@/components/DocumentList";
 import { formatDate, formatMoney } from "@/lib/format";
-import { RECEIVED_INVOICE_STATUSES, labelize } from "@/lib/constants";
+import { PAYMENT_ACCOUNTS, RECEIVED_INVOICE_STATUSES, labelize } from "@/lib/constants";
 import { DeleteButton } from "@/components/DeleteButton";
 import { updateReceivedInvoiceStatus, deleteReceivedInvoice } from "../actions";
 
@@ -21,7 +21,7 @@ export default async function ReceivedInvoiceDetailPage({ params }: { params: Pr
 
   async function changeStatus(fd: FormData) {
     "use server";
-    await updateReceivedInvoiceStatus(id, fd.get("status") as string);
+    await updateReceivedInvoiceStatus(id, fd.get("status") as string, (fd.get("account") as string) || null);
   }
 
   return (
@@ -52,8 +52,15 @@ export default async function ReceivedInvoiceDetailPage({ params }: { params: Pr
       </Section>
 
       <Section title="Status">
-        <form action={changeStatus} className="card p-4 flex items-center gap-3">
-          <Select name="status" options={RECEIVED_INVOICE_STATUSES.map((s) => ({ value: s, label: labelize(s) }))} defaultValue={ri.paymentStatus} className="w-56" />
+        <form action={changeStatus} className="card p-4 flex flex-wrap items-end gap-3">
+          <div>
+            <div className="mb-1 text-xs text-slate-500">Status</div>
+            <Select name="status" options={RECEIVED_INVOICE_STATUSES.map((s) => ({ value: s, label: labelize(s) }))} defaultValue={ri.paymentStatus} className="w-56" />
+          </div>
+          <div>
+            <div className="mb-1 text-xs text-slate-500">Paid from (account)</div>
+            <Select name="account" options={PAYMENT_ACCOUNTS.map((a) => ({ value: a, label: a }))} defaultValue={ri.account ?? ""} placeholder="Select account..." className="w-48" />
+          </div>
           <SubmitButton className="btn-secondary">Update status</SubmitButton>
         </form>
       </Section>

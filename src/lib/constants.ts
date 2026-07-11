@@ -47,6 +47,17 @@ export const PAYMENT_METHODS = [
   "Other",
 ];
 
+// The real accounts money is paid from / received into. Independent of who is
+// paying — used on expenses, invoices, supplier invoices and payments so every
+// movement is tied to an account.
+export const PAYMENT_ACCOUNTS = [
+  "Revolut Cristina",
+  "Revolut Oscar",
+  "NBD Oscar",
+  "Company Rak",
+  "Cash",
+];
+
 export const EXPENSE_STATUSES = [
   "DRAFT",
   "RECORDED",

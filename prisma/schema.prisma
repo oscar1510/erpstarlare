@@ -139,6 +139,8 @@ model Expense {
   description      String?
   category         String? // Office, Travel, Food & Beverage, Software, Marketing, Transport, Client meeting, Creator/campaign cost, Government/tax, Bank fee, Rent/office, Legal/admin, Other
 
+  account          String? // account the expense was paid from (Revolut Oscar, NBD Oscar, Cash, ...)
+
   reimbursable     Boolean   @default(false)
   reimbursePersonId String?
   reimburseAmount  Float?
@@ -196,6 +198,7 @@ model Invoice {
   currency          String    @default("AED")
 
   paymentMethod     String? // Stripe, Bank transfer, Cash, Other
+  account           String? // account the payment was received into
   status            String    @default("DRAFT") // DRAFT, SENT, PAID, PARTIALLY_PAID, OVERDUE, CANCELLED
 
   receiptDocumentId String?
@@ -380,6 +383,7 @@ model Payment {
   currency            String   @default("AED")
   date                DateTime
   method              String?
+  account             String? // account money moved from / into
   payer               String?
   payee               String?
 
@@ -426,6 +430,7 @@ model ReceivedInvoice {
   taxRegNumber     String?
 
   paymentStatus    String    @default("RECEIVED") // RECEIVED, PENDING_PAYMENT, PAID, OVERDUE, CANCELLED
+  account          String? // account this supplier invoice was paid from
   receiptDocumentId String?
   documentId       String?
 
@@ -521,6 +526,7 @@ model LedgerEntry {
   vendorName        String?
   personId          String?
   paymentMethod     String?
+  account           String? // account money moved from / into
   vat               Float?
 
   sourceDocumentId  String?

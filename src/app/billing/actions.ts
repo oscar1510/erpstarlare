@@ -77,16 +77,17 @@ export async function createInvoice(formData: FormData) {
   redirect(`/billing/${invoice.id}`);
 }
 
-export async function updateInvoiceStatus(id: string, status: string, paidDateInput?: Date | null) {
+export async function updateInvoiceStatus(id: string, status: string, paidDateInput?: Date | null, account?: string | null) {
   const before = await db.invoice.findUniqueOrThrow({ where: { id } });
 
   // When an invoice becomes PAID, record when it was actually paid so revenue
   // is attributed to that month — not the (possibly much later) issue date. Use
   // the date the user supplied, else keep any existing paid date, else today.
-  const data: { status: string; paidDate?: Date | null } = { status };
+  const data: { status: string; paidDate?: Date | null; account?: string | null } = { status };
   if (status === "PAID") {
     data.paidDate = paidDateInput ?? before.paidDate ?? new Date();
   }
+  if (account) data.account = account;
   const invoice = await db.invoice.update({ where: { id }, data });
 
   if (status === "PAID" && !invoice.ledgerEntryId) {
@@ -94,6 +95,7 @@ export async function updateInvoiceStatus(id: string, status: string, paidDateIn
       data: {
         date: invoice.paidDate ?? new Date(),
         type: "INCOME",
+        account: invoice.account,
         category: "Client Revenue",
         amount: invoice.total,
         currency: invoice.currency,
@@ -213,6 +215,7 @@ export async function confirmStripeInvoice(documentId: string, formData: FormDat
   // When the invoice is already paid, attribute the revenue to the real payment
   // date (defaulting to the invoice date) rather than "today".
   const paidDate = isPaid ? parseFormDate(formData.get("paidDate")) ?? invoiceDate : null;
+  const account = str(formData, "account");
 
   const number = await nextInvoiceNumber(invoiceDate);
   const dueDate = parseFormDate(formData.get("dueDate"));
@@ -239,6 +242,7 @@ export async function confirmStripeInvoice(documentId: string, formData: FormDat
       invoiceDate,
       dueDate,
       paidDate,
+      account,
       description,
       quantity: 1,
       unitPrice: total,
@@ -309,6 +313,7 @@ export async function confirmStripeInvoice(documentId: string, formData: FormDat
         currency: invoice.currency,
         clientId,
         paymentMethod: "Stripe",
+        account,
         invoiceId: invoice.id,
         sourceModule: "Invoice",
         sourceId: invoice.id,
@@ -325,6 +330,7 @@ export async function confirmStripeInvoice(documentId: string, formData: FormDat
         currency: invoice.currency,
         date: paidDate ?? invoiceDate,
         method: "Stripe",
+        account,
         payer: client?.name ?? str(formData, "clientName"),
         payee: "Starflare",
         invoiceId: invoice.id,

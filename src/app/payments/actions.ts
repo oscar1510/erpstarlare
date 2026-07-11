@@ -36,6 +36,7 @@ export async function createPayment(formData: FormData) {
       currency: str(formData, "currency") ?? "AED",
       date: parseFormDate(formData.get("date")) ?? new Date(),
       method: str(formData, "method"),
+      account: str(formData, "account"),
       payer: str(formData, "payer"),
       payee: str(formData, "payee"),
       invoiceId: str(formData, "invoiceId"),

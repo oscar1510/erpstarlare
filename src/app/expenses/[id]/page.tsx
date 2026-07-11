@@ -8,7 +8,7 @@ import { Field, FormGrid, Select, TextArea, TextInput } from "@/components/ui/Fi
 import { ConfidenceBadge, StatusBadge } from "@/components/ui/Badge";
 import { ActorSelect } from "@/components/ActorSelect";
 import { formatDateInput, formatMoney } from "@/lib/format";
-import { CURRENCIES, EXPENSE_CATEGORIES, EXPENSE_STATUSES, PAYMENT_METHODS, labelize } from "@/lib/constants";
+import { CURRENCIES, EXPENSE_CATEGORIES, EXPENSE_STATUSES, PAYMENT_ACCOUNTS, PAYMENT_METHODS, labelize } from "@/lib/constants";
 import { DeleteButton } from "@/components/DeleteButton";
 import { updateExpense, deleteExpense } from "../actions";
 
@@ -117,6 +117,9 @@ export default async function ExpenseDetailPage({ params }: { params: Promise<{ 
           </Field>
           <Field label="Payment method">
             <Select name="paymentMethod" options={PAYMENT_METHODS.map((m) => ({ value: m, label: m }))} defaultValue={expense.paymentMethod ?? ""} placeholder="Select..." />
+          </Field>
+          <Field label="Paid from (account)">
+            <Select name="account" options={PAYMENT_ACCOUNTS.map((a) => ({ value: a, label: a }))} defaultValue={expense.account ?? ""} placeholder="Select account..." />
           </Field>
           <Field label="Expense category">
             <Select name="category" options={EXPENSE_CATEGORIES.map((c) => ({ value: c, label: c }))} defaultValue={expense.category ?? ""} placeholder="Select..." />

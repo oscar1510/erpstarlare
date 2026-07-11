@@ -23,9 +23,14 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
         title="Expenses"
         description="All scanned and recorded expenses."
         actions={
-          <Link href="/expenses/scan" className="btn-primary">
-            🧾 Scan expense
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link href="/expenses/new" className="btn-secondary">
+              ＋ Add new
+            </Link>
+            <Link href="/expenses/scan" className="btn-primary">
+              🧾 Scan expense
+            </Link>
+          </div>
         }
       />
       <div className="flex flex-wrap gap-2 mb-4">
@@ -51,6 +56,7 @@ export default async function ExpensesPage({ searchParams }: { searchParams: Pro
           { header: "Date", render: (e) => formatDate(e.expenseDate) },
           { header: "Amount", render: (e) => formatMoney(e.amount, e.currency) },
           { header: "Category", render: (e) => e.category ?? "-" },
+          { header: "Paid from", render: (e) => e.account ?? "-" },
           { header: "Who", render: (e) => ACTOR_LABELS[e.actorType] ?? e.actorLabel },
           {
             header: "Status",

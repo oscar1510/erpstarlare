@@ -7,7 +7,7 @@ import { PageHeader, Section } from "@/components/ui/Page";
 import { StatusBadge } from "@/components/ui/Badge";
 import { Select } from "@/components/ui/Field";
 import { formatDate, formatDateInput, formatMoney } from "@/lib/format";
-import { INVOICE_STATUSES, labelize } from "@/lib/constants";
+import { INVOICE_STATUSES, PAYMENT_ACCOUNTS, labelize } from "@/lib/constants";
 import { sendInvoiceEmail, updateInvoiceStatus, trashInvoice } from "../actions";
 
 export default async function InvoiceDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -26,7 +26,8 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
     "use server";
     const raw = fd.get("paidDate");
     const paidDate = typeof raw === "string" && raw ? new Date(raw) : null;
-    await updateInvoiceStatus(id, fd.get("status") as string, paidDate);
+    const account = (fd.get("account") as string) || null;
+    await updateInvoiceStatus(id, fd.get("status") as string, paidDate, account);
   }
 
   async function emailInvoice() {
@@ -101,6 +102,10 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
             <div className="font-medium">{invoice.paymentMethod ?? "-"}</div>
           </div>
           <div>
+            <div className="text-slate-500">Received into (account)</div>
+            <div className="font-medium">{invoice.account ?? "-"}</div>
+          </div>
+          <div>
             <div className="text-slate-500">Quantity × Unit price</div>
             <div className="font-medium">
               {invoice.quantity} × {formatMoney(invoice.unitPrice, invoice.currency)}
@@ -144,6 +149,10 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
           <div>
             <div className="mb-1 text-xs text-slate-500">Payment date (when marking Paid)</div>
             <input type="date" name="paidDate" defaultValue={formatDateInput(invoice.paidDate)} className="form-input w-44" />
+          </div>
+          <div>
+            <div className="mb-1 text-xs text-slate-500">Received into (account)</div>
+            <Select name="account" options={PAYMENT_ACCOUNTS.map((a) => ({ value: a, label: a }))} defaultValue={invoice.account ?? ""} placeholder="Select account..." className="w-48" />
           </div>
           <SubmitButton className="btn-secondary">Update status</SubmitButton>
         </form>
