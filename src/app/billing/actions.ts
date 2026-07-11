@@ -216,6 +216,7 @@ export async function confirmStripeInvoice(documentId: string, formData: FormDat
   // date (defaulting to the invoice date) rather than "today".
   const paidDate = isPaid ? parseFormDate(formData.get("paidDate")) ?? invoiceDate : null;
   const account = str(formData, "account");
+  const paymentMethod = str(formData, "paymentMethod") ?? "Stripe";
 
   const number = await nextInvoiceNumber(invoiceDate);
   const dueDate = parseFormDate(formData.get("dueDate"));
@@ -249,7 +250,7 @@ export async function confirmStripeInvoice(documentId: string, formData: FormDat
       vat: 0,
       total,
       currency,
-      paymentMethod: "Stripe",
+      paymentMethod,
       status: isPaid ? "PAID" : "SENT",
       source: "STRIPE",
       sourceStripeDocumentId: documentId,
@@ -277,7 +278,7 @@ export async function confirmStripeInvoice(documentId: string, formData: FormDat
       price: total,
       currency,
       vatMode: "NONE",
-      paymentMethod: "Stripe",
+      paymentMethod,
       docDate: invoiceDate,
       validUntil: dueDate,
       status: isPaid ? "PAID" : "SENT",
@@ -295,7 +296,7 @@ export async function confirmStripeInvoice(documentId: string, formData: FormDat
         date: invoiceDate,
         amount: total,
         currency: invoice.currency,
-        paymentMethod: "Stripe",
+        paymentMethod,
         invoiceId: invoice.id,
         notes: `Stripe invoice converted to ${invoice.number}`,
       },
@@ -312,7 +313,7 @@ export async function confirmStripeInvoice(documentId: string, formData: FormDat
         amount: total,
         currency: invoice.currency,
         clientId,
-        paymentMethod: "Stripe",
+        paymentMethod,
         account,
         invoiceId: invoice.id,
         sourceModule: "Invoice",
@@ -329,7 +330,7 @@ export async function confirmStripeInvoice(documentId: string, formData: FormDat
         amount: total,
         currency: invoice.currency,
         date: paidDate ?? invoiceDate,
-        method: "Stripe",
+        method: paymentMethod,
         account,
         payer: client?.name ?? str(formData, "clientName"),
         payee: "Starflare",

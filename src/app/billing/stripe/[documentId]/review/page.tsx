@@ -6,7 +6,7 @@ import { PageHeader, Section } from "@/components/ui/Page";
 import { Field, FormGrid, Select, TextArea, TextInput } from "@/components/ui/Field";
 import { ConfidenceBadge } from "@/components/ui/Badge";
 import { SubmitButton } from "@/components/SubmitButton";
-import { CURRENCIES, PAYMENT_ACCOUNTS } from "@/lib/constants";
+import { CURRENCIES, PAYMENT_ACCOUNTS, PAYMENT_METHODS } from "@/lib/constants";
 import { confirmStripeInvoice } from "../../../actions";
 import { formatDateInput } from "@/lib/format";
 
@@ -103,6 +103,9 @@ export default async function ReviewStripeInvoicePage({ params }: { params: Prom
             <Field label="Payment date (if already paid)">
               <TextInput type="date" name="paidDate" defaultValue={formatDateInput(fields.invoiceDate?.value)} />
               <p className="mt-1 text-xs text-slate-400">Revenue is counted in this month — set it to when the invoice was actually paid.</p>
+            </Field>
+            <Field label="Payment method">
+              <Select name="paymentMethod" options={PAYMENT_METHODS.map((m) => ({ value: m, label: m }))} defaultValue="Stripe" />
             </Field>
             <Field label="Received into (account)">
               <Select name="account" options={PAYMENT_ACCOUNTS.map((a) => ({ value: a, label: a }))} placeholder="Select account..." />
