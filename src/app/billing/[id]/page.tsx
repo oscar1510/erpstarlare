@@ -5,10 +5,10 @@ import { SubmitButton } from "@/components/SubmitButton";
 import { notFound } from "next/navigation";
 import { PageHeader, Section } from "@/components/ui/Page";
 import { StatusBadge } from "@/components/ui/Badge";
-import { Select } from "@/components/ui/Field";
+import { Field, FormGrid, Select, TextArea, TextInput } from "@/components/ui/Field";
 import { formatDate, formatDateInput, formatMoney } from "@/lib/format";
-import { INVOICE_STATUSES, PAYMENT_ACCOUNTS, labelize } from "@/lib/constants";
-import { sendInvoiceEmail, updateInvoiceStatus, trashInvoice } from "../actions";
+import { CURRENCIES, INVOICE_STATUSES, PAYMENT_ACCOUNTS, PAYMENT_METHODS, labelize } from "@/lib/constants";
+import { sendInvoiceEmail, updateInvoiceStatus, updateInvoiceDetails, trashInvoice } from "../actions";
 
 export default async function InvoiceDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -39,6 +39,8 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
     "use server";
     await trashInvoice(id);
   }
+
+  const editDetails = updateInvoiceDetails.bind(null, id);
 
   return (
     <div className="max-w-3xl space-y-6">
@@ -78,63 +80,56 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
       )}
 
       <Section title="Details">
-        <div className="card p-5 grid grid-cols-2 gap-4 text-sm">
-          <div>
-            <div className="text-slate-500">Invoice date</div>
-            <div className="font-medium">{formatDate(invoice.invoiceDate)}</div>
-          </div>
-          <div>
-            <div className="text-slate-500">Due date</div>
-            <div className="font-medium">{formatDate(invoice.dueDate)}</div>
-          </div>
-          {invoice.paidDate && (
-            <div>
-              <div className="text-slate-500">Paid on</div>
-              <div className="font-medium text-green-700">{formatDate(invoice.paidDate)}</div>
+        <form action={editDetails} className="card p-5 space-y-4">
+          <FormGrid>
+            <Field label="Invoice number">
+              <TextInput name="number" defaultValue={invoice.number} required />
+            </Field>
+            <Field label="Client name (shown on invoice)">
+              <TextInput name="clientNameSnapshot" defaultValue={invoice.clientNameSnapshot ?? ""} />
+            </Field>
+            <Field label="Invoice date">
+              <TextInput type="date" name="invoiceDate" defaultValue={formatDateInput(invoice.invoiceDate)} />
+            </Field>
+            <Field label="Due date">
+              <TextInput type="date" name="dueDate" defaultValue={formatDateInput(invoice.dueDate)} />
+            </Field>
+            <Field label="Paid date (drives which month it counts in)">
+              <TextInput type="date" name="paidDate" defaultValue={formatDateInput(invoice.paidDate)} />
+            </Field>
+            <Field label="Currency">
+              <Select name="currency" options={CURRENCIES.map((c) => ({ value: c, label: c }))} defaultValue={invoice.currency} />
+            </Field>
+            <Field label="Quantity">
+              <TextInput type="number" step="0.01" name="quantity" defaultValue={invoice.quantity} />
+            </Field>
+            <Field label="Unit price">
+              <TextInput type="number" step="0.01" name="unitPrice" defaultValue={invoice.unitPrice} />
+            </Field>
+            <Field label="VAT">
+              <TextInput type="number" step="0.01" name="vat" defaultValue={invoice.vat} />
+            </Field>
+            <Field label="Payment method">
+              <Select name="paymentMethod" options={PAYMENT_METHODS.map((m) => ({ value: m, label: m }))} defaultValue={invoice.paymentMethod ?? ""} placeholder="Select..." />
+            </Field>
+            <Field label="Received into (account)">
+              <Select name="account" options={PAYMENT_ACCOUNTS.map((a) => ({ value: a, label: a }))} defaultValue={invoice.account ?? ""} placeholder="Select account..." />
+            </Field>
+          </FormGrid>
+          <Field label="Description">
+            <TextInput name="description" defaultValue={invoice.description ?? ""} />
+          </Field>
+          <Field label="Notes">
+            <TextArea name="notes" defaultValue={invoice.notes ?? ""} rows={2} />
+          </Field>
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-slate-500">
+              Total: <span className="font-semibold text-slate-900">{formatMoney(invoice.total, invoice.currency)}</span>
+              {invoice.sentAt && <span className="ml-3 text-xs">Sent to {invoice.sentToEmail} on {formatDate(invoice.sentAt)}</span>}
             </div>
-          )}
-          <div>
-            <div className="text-slate-500">Description</div>
-            <div className="font-medium">{invoice.description ?? "-"}</div>
+            <SubmitButton>Save details</SubmitButton>
           </div>
-          <div>
-            <div className="text-slate-500">Payment method</div>
-            <div className="font-medium">{invoice.paymentMethod ?? "-"}</div>
-          </div>
-          <div>
-            <div className="text-slate-500">Received into (account)</div>
-            <div className="font-medium">{invoice.account ?? "-"}</div>
-          </div>
-          <div>
-            <div className="text-slate-500">Quantity × Unit price</div>
-            <div className="font-medium">
-              {invoice.quantity} × {formatMoney(invoice.unitPrice, invoice.currency)}
-            </div>
-          </div>
-          <div>
-            <div className="text-slate-500">VAT</div>
-            <div className="font-medium">{formatMoney(invoice.vat, invoice.currency)}</div>
-          </div>
-          <div>
-            <div className="text-slate-500">Total</div>
-            <div className="font-semibold text-lg">{formatMoney(invoice.total, invoice.currency)}</div>
-          </div>
-          <div>
-            <div className="text-slate-500">Client TRN</div>
-            <div className="font-medium">{invoice.clientTRNSnapshot ?? "-"}</div>
-          </div>
-          {invoice.sentAt && (
-            <div className="col-span-2 text-xs text-slate-500">
-              Sent to {invoice.sentToEmail} on {formatDate(invoice.sentAt)}
-            </div>
-          )}
-          {invoice.notes && (
-            <div className="col-span-2">
-              <div className="text-slate-500">Notes</div>
-              <div className="font-medium">{invoice.notes}</div>
-            </div>
-          )}
-        </div>
+        </form>
       </Section>
 
       <Section title="Status">

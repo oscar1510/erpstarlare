@@ -90,6 +90,31 @@ export async function updateInvoiceStatus(id: string, status: string, paidDateIn
   if (account) data.account = account;
   const invoice = await db.invoice.update({ where: { id }, data });
 
+  // Marking an invoice paid must also record the money as received, otherwise
+  // "Cash in" (from Payment records) lags "Revenue" (from invoices). Create a
+  // matching incoming payment once, if none exists yet for this invoice.
+  if (status === "PAID") {
+    const existingPayment = await db.payment.findFirst({ where: { invoiceId: id } });
+    if (!existingPayment) {
+      await db.payment.create({
+        data: {
+          type: "INCOMING",
+          amount: invoice.total,
+          currency: invoice.currency,
+          date: invoice.paidDate ?? new Date(),
+          method: invoice.paymentMethod,
+          account: invoice.account,
+          payer: invoice.clientNameSnapshot,
+          payee: "Starflare",
+          invoiceId: id,
+          clientId: invoice.clientId,
+          reconciliation: "PENDING_REVIEW",
+          notes: `Payment for invoice ${invoice.number}`,
+        },
+      });
+    }
+  }
+
   if (status === "PAID" && !invoice.ledgerEntryId) {
     const ledgerEntry = await db.ledgerEntry.create({
       data: {
@@ -125,6 +150,92 @@ export async function updateInvoiceStatus(id: string, status: string, paidDateIn
 
   revalidatePath(`/billing/${id}`);
   revalidatePath("/billing");
+}
+
+/**
+ * Edit an invoice's core details — including its number and dates — and keep the
+ * linked ledger entry, payment and branded document in sync. Editing the paid
+ * date here is what moves an invoice into the correct month on the dashboard.
+ */
+export async function updateInvoiceDetails(id: string, formData: FormData) {
+  const before = await db.invoice.findUniqueOrThrow({ where: { id } });
+
+  const number = str(formData, "number") ?? before.number;
+  // Numbers are unique — block a change that collides with another invoice.
+  if (number !== before.number) {
+    const clash = await db.invoice.findFirst({ where: { number, id: { not: id } } });
+    if (clash) {
+      redirect(`/billing/${id}?saved=${encodeURIComponent(`Invoice number ${number} is already used`)}`);
+    }
+  }
+
+  const quantity = parseFormNumber(formData.get("quantity")) ?? 1;
+  const unitPrice = parseFormNumber(formData.get("unitPrice")) ?? 0;
+  const vat = parseFormNumber(formData.get("vat")) ?? 0;
+  const total = quantity * unitPrice + vat;
+  const invoiceDate = parseFormDate(formData.get("invoiceDate")) ?? before.invoiceDate;
+  const dueDate = parseFormDate(formData.get("dueDate"));
+  const paidDate = parseFormDate(formData.get("paidDate"));
+  const currency = str(formData, "currency") ?? before.currency;
+  const account = str(formData, "account");
+  const paymentMethod = str(formData, "paymentMethod");
+
+  await db.invoice.update({
+    where: { id },
+    data: {
+      number,
+      invoiceDate,
+      dueDate,
+      paidDate,
+      description: str(formData, "description"),
+      clientNameSnapshot: str(formData, "clientNameSnapshot"),
+      quantity,
+      unitPrice,
+      vat,
+      total,
+      currency,
+      account,
+      paymentMethod,
+      notes: str(formData, "notes"),
+    },
+  });
+
+  // Keep the linked money records consistent with the edited invoice.
+  if (before.ledgerEntryId) {
+    await db.ledgerEntry.update({
+      where: { id: before.ledgerEntryId },
+      data: { amount: total, currency, account, date: paidDate ?? invoiceDate },
+    }).catch(() => {});
+  }
+  await db.payment.updateMany({
+    where: { invoiceId: id },
+    data: { amount: total, currency, account, date: paidDate ?? invoiceDate },
+  });
+  // Sync the branded document (number/date/price) — best effort (number unique).
+  try {
+    const quote = await db.quotation.findFirst({ where: { invoiceId: id } });
+    if (quote) {
+      await db.quotation.update({
+        where: { id: quote.id },
+        data: { number, docDate: invoiceDate, validUntil: dueDate, price: quantity * unitPrice, currency },
+      });
+    }
+  } catch { /* ignore quotation sync issues */ }
+
+  await logAudit({
+    action: "updated",
+    section: "Billing",
+    recordType: "Invoice",
+    recordId: id,
+    summary: `Edited invoice ${number}`,
+    performedByType: "OSCAR",
+    performedByLabel: "Oscar",
+  });
+
+  revalidatePath(`/billing/${id}`);
+  revalidatePath("/billing");
+  revalidatePath("/");
+  redirect(`/billing/${id}?saved=${encodeURIComponent("Invoice updated")}`);
 }
 
 export async function sendInvoiceEmail(id: string) {
