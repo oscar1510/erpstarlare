@@ -250,8 +250,10 @@ export async function updateInvoiceDetails(id: string, formData: FormData) {
 export async function alignPaidDatesToInvoiceDates() {
   const invoices = await db.invoice.findMany({ where: { status: "PAID", deletedAt: null } });
   let fixed = 0;
+  let paymentsAdded = 0;
   for (const inv of invoices) {
     const target = inv.invoiceDate;
+    // 1) Align the paid date (and linked ledger/payment dates) to the invoice date.
     if (!inv.paidDate || inv.paidDate.getTime() !== target.getTime()) {
       await db.invoice.update({ where: { id: inv.id }, data: { paidDate: target } });
       if (inv.ledgerEntryId) {
@@ -260,10 +262,33 @@ export async function alignPaidDatesToInvoiceDates() {
       await db.payment.updateMany({ where: { invoiceId: inv.id }, data: { date: target } });
       fixed++;
     }
+    // 2) Backfill a missing incoming payment so "Cash in" matches "Revenue"
+    //    (invoices marked paid before payments were auto-created lack one).
+    const existingPayment = await db.payment.findFirst({ where: { invoiceId: inv.id } });
+    if (!existingPayment) {
+      await db.payment.create({
+        data: {
+          type: "INCOMING",
+          amount: inv.total,
+          currency: inv.currency,
+          date: target,
+          method: inv.paymentMethod,
+          account: inv.account,
+          payer: inv.clientNameSnapshot,
+          payee: "Starflare",
+          invoiceId: inv.id,
+          clientId: inv.clientId,
+          reconciliation: "PENDING_REVIEW",
+          notes: `Payment for invoice ${inv.number}`,
+        },
+      });
+      paymentsAdded++;
+    }
   }
   revalidatePath("/billing");
   revalidatePath("/");
-  redirect(`/billing?saved=${encodeURIComponent(`Aligned paid dates for ${fixed} invoice(s)`)}`);
+  revalidatePath("/payments");
+  redirect(`/billing?saved=${encodeURIComponent(`Fixed ${fixed} date(s) and added ${paymentsAdded} missing payment(s)`)}`);
 }
 
 export async function sendInvoiceEmail(id: string) {

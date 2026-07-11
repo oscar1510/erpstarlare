@@ -41,9 +41,9 @@ export default async function BillingPage() {
       <div className="mb-4">
         <ConfirmButton
           action={alignPaidDatesToInvoiceDates}
-          label="🔧 Fix paid dates (set = invoice date)"
-          pendingLabel="Fixing…"
-          confirm="Set the paid date equal to the invoice date for every paid invoice? Use this if paid invoices show up in the wrong month. You can still edit individual invoices afterwards."
+          label="🔧 Repair invoices (fix paid dates & missing payments)"
+          pendingLabel="Repairing…"
+          confirm="For every paid invoice: set the paid date = invoice date, and create any missing incoming payment so Cash in matches Revenue. Use this to clean up historical data. You can still edit individual invoices afterwards."
           className="btn-secondary !py-1 !text-xs"
         />
       </div>
