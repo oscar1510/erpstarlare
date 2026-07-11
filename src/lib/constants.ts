@@ -58,6 +58,14 @@ export const PAYMENT_ACCOUNTS = [
   "Cash",
 ];
 
+// Standard UAE VAT rate. Expense amounts are treated as VAT-inclusive by default.
+export const VAT_RATE = 5;
+
+/** The VAT portion already contained inside a VAT-inclusive (gross) amount. */
+export function includedVat(amount: number): number {
+  return Math.round(((amount * VAT_RATE) / (100 + VAT_RATE)) * 100) / 100;
+}
+
 export const EXPENSE_STATUSES = [
   "DRAFT",
   "RECORDED",

@@ -10,6 +10,7 @@ import { ActorSelect } from "@/components/ActorSelect";
 import { formatDateInput, formatMoney } from "@/lib/format";
 import { CURRENCIES, EXPENSE_CATEGORIES, EXPENSE_STATUSES, PAYMENT_ACCOUNTS, PAYMENT_METHODS, labelize } from "@/lib/constants";
 import { DeleteButton } from "@/components/DeleteButton";
+import { VatFields } from "@/components/VatFields";
 import { updateExpense, deleteExpense } from "../actions";
 
 export default async function ExpenseDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -99,16 +100,15 @@ export default async function ExpenseDetailPage({ params }: { params: Promise<{ 
           </Field>
           <Field label="Amount">
             <div className="flex items-center gap-2">
-              <TextInput type="number" step="0.01" name="amount" defaultValue={expense.amount ?? ""} className="flex-1" />
+              <TextInput type="number" step="0.01" name="amount" id="expense-amount" defaultValue={expense.amount ?? ""} className="flex-1" />
               {fields.amount && <ConfidenceBadge confidence={fields.amount.confidence} />}
             </div>
           </Field>
           <Field label="Currency">
             <Select name="currency" options={CURRENCIES.map((c) => ({ value: c, label: c }))} defaultValue={expense.currency} />
           </Field>
-          <Field label="VAT amount">
-            <TextInput type="number" step="0.01" name="vat" defaultValue={expense.vat ?? ""} />
-          </Field>
+          <VatFields amountInputId="expense-amount" defaultIncluded={expense.vatIncluded} defaultVat={expense.vat} />
+          <div />
           <Field label="Tax registration number">
             <TextInput name="taxRegNumber" defaultValue={expense.taxRegNumber ?? ""} />
           </Field>

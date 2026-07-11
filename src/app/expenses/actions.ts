@@ -6,12 +6,27 @@ import { ingestDocument, fieldValue, fieldDate } from "@/lib/documents";
 import { parseFileRefs } from "@/lib/file-refs";
 import { findPossibleDuplicateExpenses } from "@/lib/duplicates";
 import { parseFormDate, parseFormNumber } from "@/lib/format";
+import { includedVat } from "@/lib/constants";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
 function str(fd: FormData, key: string): string | undefined {
   const v = fd.get(key);
   return typeof v === "string" && v.trim() ? v.trim() : undefined;
+}
+
+/**
+ * Resolve the VAT for an expense from the "Amount includes 5% VAT" checkbox:
+ *  - ticked  → VAT is the 5% portion computed from the (VAT-inclusive) amount;
+ *  - unticked → VAT is whatever was typed manually, or none if left empty.
+ */
+function resolveVat(fd: FormData, amount: number | null | undefined): { vat: number | null; vatIncluded: boolean } {
+  const vatIncluded = fd.get("vatIncluded") === "on";
+  if (vatIncluded) {
+    return { vat: amount != null ? includedVat(amount) : null, vatIncluded: true };
+  }
+  const manual = parseFormNumber(fd.get("vat"));
+  return { vat: manual ?? null, vatIncluded: false };
 }
 
 export async function uploadExpenseReceipts(formData: FormData) {
@@ -103,6 +118,7 @@ export async function createExpense(formData: FormData) {
   const amount = parseFormNumber(formData.get("amount"));
   const expenseDate = parseFormDate(formData.get("expenseDate"));
   const status = str(formData, "status") ?? "RECORDED";
+  const { vat, vatIncluded } = resolveVat(formData, amount);
 
   const duplicates = await findPossibleDuplicateExpenses({ vendor, amount, expenseDate });
 
@@ -116,7 +132,8 @@ export async function createExpense(formData: FormData) {
       referenceDate: parseFormDate(formData.get("referenceDate")),
       amount,
       currency: str(formData, "currency") ?? "AED",
-      vat: parseFormNumber(formData.get("vat")),
+      vat,
+      vatIncluded,
       taxRegNumber: str(formData, "taxRegNumber"),
       paymentMethod: str(formData, "paymentMethod"),
       account: str(formData, "account"),
@@ -194,6 +211,7 @@ export async function updateExpense(id: string, formData: FormData) {
   const vendor = str(formData, "vendor");
   const amount = parseFormNumber(formData.get("amount"));
   const expenseDate = parseFormDate(formData.get("expenseDate"));
+  const { vat, vatIncluded } = resolveVat(formData, amount);
 
   const duplicates = await findPossibleDuplicateExpenses({ vendor, amount, expenseDate, excludeId: id });
 
@@ -210,7 +228,8 @@ export async function updateExpense(id: string, formData: FormData) {
       referenceDate: parseFormDate(formData.get("referenceDate")),
       amount,
       currency: str(formData, "currency") ?? before.currency,
-      vat: parseFormNumber(formData.get("vat")),
+      vat,
+      vatIncluded,
       taxRegNumber: str(formData, "taxRegNumber"),
       paymentMethod: str(formData, "paymentMethod"),
       receiptNumber: str(formData, "receiptNumber"),

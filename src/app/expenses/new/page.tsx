@@ -6,6 +6,7 @@ import { Field, FormGrid, Select, TextArea, TextInput } from "@/components/ui/Fi
 import { ActorSelect } from "@/components/ActorSelect";
 import { DocumentUploader } from "@/components/DocumentUploader";
 import { SubmitButton } from "@/components/SubmitButton";
+import { VatFields } from "@/components/VatFields";
 import { CURRENCIES, EXPENSE_CATEGORIES, EXPENSE_STATUSES, PAYMENT_ACCOUNTS, PAYMENT_METHODS, labelize } from "@/lib/constants";
 import { createExpense } from "../actions";
 
@@ -30,19 +31,18 @@ export default async function NewExpensePage() {
             <TextInput type="date" name="expenseDate" />
           </Field>
           <Field label="Amount">
-            <TextInput type="number" step="0.01" name="amount" />
+            <TextInput type="number" step="0.01" name="amount" id="expense-amount" />
           </Field>
           <Field label="Currency">
             <Select name="currency" options={CURRENCIES.map((c) => ({ value: c, label: c }))} defaultValue="AED" />
           </Field>
+          <VatFields amountInputId="expense-amount" defaultIncluded />
+          <div />
           <Field label="Paid from (account)">
             <Select name="account" options={PAYMENT_ACCOUNTS.map((a) => ({ value: a, label: a }))} placeholder="Select account..." />
           </Field>
           <Field label="Payment method">
             <Select name="paymentMethod" options={PAYMENT_METHODS.map((m) => ({ value: m, label: m }))} placeholder="Select..." />
-          </Field>
-          <Field label="VAT amount">
-            <TextInput type="number" step="0.01" name="vat" />
           </Field>
           <Field label="Tax registration number">
             <TextInput name="taxRegNumber" />

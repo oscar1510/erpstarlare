@@ -133,6 +133,7 @@ model Expense {
   amount           Float?
   currency         String    @default("AED")
   vat              Float?
+  vatIncluded      Boolean   @default(true) // amount is treated as VAT-inclusive at 5% (VAT computed from it); when false, vat is manual/none
   taxRegNumber     String?
   paymentMethod    String? // Company card, Personal card, Cash, Bank transfer, Stripe, Other
   receiptNumber    String?
