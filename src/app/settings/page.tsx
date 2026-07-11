@@ -61,10 +61,18 @@ export default async function SettingsPage() {
       <Section title="Backup & export">
         <div className="card p-5 space-y-4">
           <p className="text-sm text-slate-500">
-            A complete snapshot of everything in the system is saved automatically once a day (kept for 14 days). You can also
-            download a snapshot any time as a single JSON file — keep it somewhere safe.
+            Every automatic and manual backup is a <strong>complete snapshot of everything</strong> at that moment — not just
+            recent changes. So restoring any single backup brings back <strong>all</strong> your data, however old. The daily
+            automatic backups (kept for 30 days) let you rewind to any of the last 30 days.
           </p>
-          <a href="/api/export" className="btn-primary inline-flex">⬇ Download full backup (JSON)</a>
+          <div className="flex flex-wrap gap-2">
+            <a href="/api/export/full" className="btn-primary inline-flex">⬇ Download complete backup (data + files, ZIP)</a>
+            <a href="/api/export" className="btn-secondary inline-flex">Data only (JSON)</a>
+          </div>
+          <p className="text-xs text-slate-400">
+            Tip: download a complete ZIP every so often and keep it on your computer or Google Drive — that&apos;s your off-site
+            copy in case anything ever happens to the whole system.
+          </p>
 
           <div>
             <div className="text-sm font-medium text-slate-700 mb-2">Automatic daily backups</div>

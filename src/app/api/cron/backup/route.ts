@@ -3,7 +3,7 @@ import { exportAll } from "@/lib/backup";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-const KEEP = 14; // keep the last 14 daily backups
+const KEEP = 30; // keep the last 30 daily backups (each is a full snapshot)
 
 /**
  * Daily automated backup. Vercel Cron calls this once a day (see vercel.json)
