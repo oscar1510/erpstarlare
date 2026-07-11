@@ -25,7 +25,7 @@ export default async function SettingsPage() {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={setting.companyLogoUrl} alt="Current logo" className="h-14 w-auto border border-slate-200 rounded bg-white p-1" />
               <form action={removeCompanyLogo}>
-                <button className="btn-secondary" type="submit">Remove</button>
+                <SubmitButton className="btn-secondary">Remove</SubmitButton>
               </form>
             </div>
           ) : (

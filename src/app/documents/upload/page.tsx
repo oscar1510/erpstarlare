@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { db } from "@/lib/db";
+import { SubmitButton } from "@/components/SubmitButton";
 import { PageHeader } from "@/components/ui/Page";
 import { Field, FormGrid, Select } from "@/components/ui/Field";
 import { DocumentUploader } from "@/components/DocumentUploader";
@@ -33,7 +34,7 @@ export default async function UploadDocumentPage() {
         </FormGrid>
         <DocumentUploader multiple required />
         <div className="flex justify-end">
-          <button className="btn-primary" type="submit">Upload & scan</button>
+          <SubmitButton>Upload & scan</SubmitButton>
         </div>
       </form>
     </div>

@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { db } from "@/lib/db";
+import { SubmitButton } from "@/components/SubmitButton";
 import { PageHeader } from "@/components/ui/Page";
 import { Field, FormGrid, Select, TextArea, TextInput } from "@/components/ui/Field";
 import { CURRENCIES, INVOICE_STATUSES, PAYMENT_METHODS, labelize } from "@/lib/constants";
@@ -55,9 +56,7 @@ export default async function NewInvoicePage({ searchParams }: { searchParams: P
           <TextArea name="notes" rows={2} />
         </Field>
         <div className="flex justify-end">
-          <button className="btn-primary" type="submit">
-            Create invoice
-          </button>
+          <SubmitButton>Create invoice</SubmitButton>
         </div>
       </form>
     </div>

@@ -21,20 +21,24 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
   const results: Result[] = [];
 
   if (query) {
+    // Postgres `contains` is case-sensitive by default — without insensitive
+    // mode a search for "cristina" never matches "Cristina", which is why the
+    // global search "found nothing". `i` makes every field match case-insensitively.
+    const like = (field: string) => ({ [field]: { contains: query, mode: "insensitive" as const } });
     const [clients, people, invoices, receivedInvoices, documents, deadlines, expenses, receivedContracts, sentContracts, policies, taxRecords, rentRecords] =
       await Promise.all([
-        db.client.findMany({ where: { OR: [{ name: { contains: query } }, { companyName: { contains: query } }] }, take: 15 }),
-        db.person.findMany({ where: { OR: [{ firstName: { contains: query } }, { lastName: { contains: query } }, { role: { contains: query } }] }, take: 15 }),
-        db.invoice.findMany({ where: { OR: [{ number: { contains: query } }, { clientNameSnapshot: { contains: query } }, { description: { contains: query } }] }, take: 15 }),
-        db.receivedInvoice.findMany({ where: { OR: [{ vendorName: { contains: query } }, { invoiceNumber: { contains: query } }] }, take: 15 }),
-        db.document.findMany({ where: { OR: [{ fileName: { contains: query } }, { ocrText: { contains: query } }, { category: { contains: query } }] }, take: 15 }),
-        db.deadline.findMany({ where: { OR: [{ title: { contains: query } }, { category: { contains: query } }] }, take: 15 }),
-        db.expense.findMany({ where: { OR: [{ vendor: { contains: query } }, { actorLabel: { contains: query } }, { description: { contains: query } }] }, take: 15 }),
-        db.receivedContract.findMany({ where: { counterpartyName: { contains: query } }, take: 10 }),
-        db.sentContract.findMany({ where: { partnerName: { contains: query } }, take: 10 }),
-        db.platformPolicy.findMany({ where: { policyName: { contains: query } }, take: 10 }),
-        db.taxRecord.findMany({ where: { OR: [{ docType: { contains: query } }, { taxRefNumber: { contains: query } }] }, take: 10 }),
-        db.rentRecord.findMany({ where: { OR: [{ landlordName: { contains: query } }, { location: { contains: query } }, { officeName: { contains: query } }] }, take: 10 }),
+        db.client.findMany({ where: { OR: [like("name"), like("companyName")] }, take: 15 }),
+        db.person.findMany({ where: { OR: [like("firstName"), like("lastName"), like("role")] }, take: 15 }),
+        db.invoice.findMany({ where: { OR: [like("number"), like("clientNameSnapshot"), like("description")] }, take: 15 }),
+        db.receivedInvoice.findMany({ where: { OR: [like("vendorName"), like("invoiceNumber")] }, take: 15 }),
+        db.document.findMany({ where: { OR: [like("fileName"), like("ocrText"), like("category")] }, take: 15 }),
+        db.deadline.findMany({ where: { OR: [like("title"), like("category")] }, take: 15 }),
+        db.expense.findMany({ where: { OR: [like("vendor"), like("actorLabel"), like("description")] }, take: 15 }),
+        db.receivedContract.findMany({ where: { OR: [like("counterpartyName")] }, take: 10 }),
+        db.sentContract.findMany({ where: { OR: [like("partnerName")] }, take: 10 }),
+        db.platformPolicy.findMany({ where: { OR: [like("policyName")] }, take: 10 }),
+        db.taxRecord.findMany({ where: { OR: [like("docType"), like("taxRefNumber")] }, take: 10 }),
+        db.rentRecord.findMany({ where: { OR: [like("landlordName"), like("location"), like("officeName")] }, take: 10 }),
       ]);
 
     for (const c of clients) results.push({ type: "Client", title: c.name, subtitle: c.companyName ?? undefined, status: c.status, href: `/clients/${c.id}` });

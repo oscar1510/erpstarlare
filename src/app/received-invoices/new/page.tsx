@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { PageHeader } from "@/components/ui/Page";
+import { SubmitButton } from "@/components/SubmitButton";
 import { DocumentUploader } from "@/components/DocumentUploader";
 import { uploadReceivedInvoice } from "../actions";
 
@@ -14,9 +15,7 @@ export default function NewReceivedInvoicePage() {
       <form action={uploadReceivedInvoice} className="card p-5 space-y-4">
         <DocumentUploader required />
         <div className="flex justify-end">
-          <button className="btn-primary" type="submit">
-            Upload & scan
-          </button>
+          <SubmitButton>Upload & scan</SubmitButton>
         </div>
       </form>
     </div>

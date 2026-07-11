@@ -31,6 +31,7 @@ export default async function DashboardPage({
 
   const [
     invoices,
+    paidInvoicesAll,
     expenses,
     payments,
     clients,
@@ -46,6 +47,9 @@ export default async function DashboardPage({
     reimbursementsDue,
   ] = await Promise.all([
     db.invoice.findMany({ where: { invoiceDate: dateFilter, deletedAt: null } }),
+    // All paid invoices — revenue is attributed by *payment* date (paidDate),
+    // not issue date, so we filter these in JS by their effective paid date.
+    db.invoice.findMany({ where: { status: "PAID", deletedAt: null } }),
     db.ledgerEntry.findMany({ where: { type: "EXPENSE", date: dateFilter } }),
     db.payment.findMany({ where: { date: dateFilter } }),
     db.client.findMany({ where: { status: "ACTIVE" } }),
@@ -73,10 +77,15 @@ export default async function DashboardPage({
     db.reimbursement.findMany({ where: { status: { in: ["SUBMITTED", "RECORDED"] } }, take: 5 }),
   ]);
 
-  const totalRevenue = invoices.filter((i) => i.status === "PAID").reduce((s, i) => s + i.total, 0);
-  const stripeRevenue = invoices.filter((i) => i.status === "PAID" && i.source === "STRIPE").reduce((s, i) => s + i.total, 0);
-  const manualRevenue = invoices.filter((i) => i.status === "PAID" && i.source === "MANUAL").reduce((s, i) => s + i.total, 0);
-  const invoicesPaid = invoices.filter((i) => i.status === "PAID").length;
+  // Revenue is counted in the month the invoice was actually paid. An invoice
+  // dated this month but paid last September must not inflate this month's
+  // revenue — and one paid this month but issued long ago must still count.
+  const inRange = (d: Date | null | undefined) => !!d && (!start || d >= start) && (!end || d <= end);
+  const revenueInvoices = paidInvoicesAll.filter((i) => inRange(i.paidDate ?? i.invoiceDate));
+  const totalRevenue = revenueInvoices.reduce((s, i) => s + i.total, 0);
+  const stripeRevenue = revenueInvoices.filter((i) => i.source === "STRIPE").reduce((s, i) => s + i.total, 0);
+  const manualRevenue = revenueInvoices.filter((i) => i.source === "MANUAL").reduce((s, i) => s + i.total, 0);
+  const invoicesPaid = revenueInvoices.length;
   const invoicesOverdue = invoices.filter((i) => i.status === "OVERDUE" || (i.dueDate && i.dueDate < new Date() && i.status !== "PAID" && i.status !== "CANCELLED")).length;
 
   const totalExpenses = expenses.reduce((s, e) => s + e.amount, 0);

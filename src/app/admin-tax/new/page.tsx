@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { PageHeader } from "@/components/ui/Page";
+import { SubmitButton } from "@/components/SubmitButton";
 import { Field, FormGrid, Select, TextArea, TextInput } from "@/components/ui/Field";
 import { DocumentUploader } from "@/components/DocumentUploader";
 import { TAX_DOC_TYPES, TAX_STATUSES, labelize } from "@/lib/constants";
@@ -42,7 +43,7 @@ export default function NewTaxRecordPage() {
           <TextArea name="notes" rows={2} />
         </Field>
         <div className="flex justify-end">
-          <button className="btn-primary" type="submit">Save record</button>
+          <SubmitButton>Save record</SubmitButton>
         </div>
       </form>
     </div>

@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { PageHeader } from "@/components/ui/Page";
+import { SubmitButton } from "@/components/SubmitButton";
 import { Field, FormGrid, TextArea, TextInput } from "@/components/ui/Field";
 import { DocumentUploader } from "@/components/DocumentUploader";
 import { createRentRecord } from "../actions";
@@ -47,7 +48,7 @@ export default function NewRentRecordPage() {
           <TextArea name="notes" rows={2} />
         </Field>
         <div className="flex justify-end">
-          <button className="btn-primary" type="submit">Save lease</button>
+          <SubmitButton>Save lease</SubmitButton>
         </div>
       </form>
     </div>

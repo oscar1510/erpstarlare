@@ -1,11 +1,12 @@
 export const dynamic = "force-dynamic";
 
 import { db } from "@/lib/db";
+import { SubmitButton } from "@/components/SubmitButton";
 import { notFound } from "next/navigation";
 import { PageHeader, Section } from "@/components/ui/Page";
 import { StatusBadge } from "@/components/ui/Badge";
 import { Select } from "@/components/ui/Field";
-import { formatDate, formatMoney } from "@/lib/format";
+import { formatDate, formatDateInput, formatMoney } from "@/lib/format";
 import { INVOICE_STATUSES, labelize } from "@/lib/constants";
 import { sendInvoiceEmail, updateInvoiceStatus, trashInvoice } from "../actions";
 
@@ -23,7 +24,9 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
 
   async function changeStatus(fd: FormData) {
     "use server";
-    await updateInvoiceStatus(id, fd.get("status") as string);
+    const raw = fd.get("paidDate");
+    const paidDate = typeof raw === "string" && raw ? new Date(raw) : null;
+    await updateInvoiceStatus(id, fd.get("status") as string, paidDate);
   }
 
   async function emailInvoice() {
@@ -53,10 +56,10 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
               </a>
             )}
             <form action={emailInvoice}>
-              <button className="btn-primary" type="submit">✉️ Send to client</button>
+              <SubmitButton>✉️ Send to client</SubmitButton>
             </form>
             <form action={trash}>
-              <button className="btn-secondary text-red-600 border-red-200 hover:bg-red-50" type="submit">🗑 Delete</button>
+              <SubmitButton className="btn-secondary text-red-600 border-red-200 hover:bg-red-50">🗑 Delete</SubmitButton>
             </form>
           </>
         }
@@ -83,6 +86,12 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
             <div className="text-slate-500">Due date</div>
             <div className="font-medium">{formatDate(invoice.dueDate)}</div>
           </div>
+          {invoice.paidDate && (
+            <div>
+              <div className="text-slate-500">Paid on</div>
+              <div className="font-medium text-green-700">{formatDate(invoice.paidDate)}</div>
+            </div>
+          )}
           <div>
             <div className="text-slate-500">Description</div>
             <div className="font-medium">{invoice.description ?? "-"}</div>
@@ -124,13 +133,21 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
       </Section>
 
       <Section title="Status">
-        <form action={changeStatus} className="card p-4 flex items-center gap-3">
-          <StatusBadge status={invoice.status} />
-          <Select name="status" options={INVOICE_STATUSES.map((s) => ({ value: s, label: labelize(s) }))} defaultValue={invoice.status} className="w-56" />
-          <button className="btn-secondary" type="submit">
-            Update status
-          </button>
+        <form action={changeStatus} className="card p-4 flex flex-wrap items-end gap-3">
+          <div>
+            <div className="mb-1 text-xs text-slate-500">Status</div>
+            <div className="flex items-center gap-2">
+              <StatusBadge status={invoice.status} />
+              <Select name="status" options={INVOICE_STATUSES.map((s) => ({ value: s, label: labelize(s) }))} defaultValue={invoice.status} className="w-56" />
+            </div>
+          </div>
+          <div>
+            <div className="mb-1 text-xs text-slate-500">Payment date (when marking Paid)</div>
+            <input type="date" name="paidDate" defaultValue={formatDateInput(invoice.paidDate)} className="form-input w-44" />
+          </div>
+          <SubmitButton className="btn-secondary">Update status</SubmitButton>
         </form>
+        <p className="mt-2 text-xs text-slate-500">Revenue counts in the month of the payment date — so an invoice paid last year won&apos;t show up in this month&apos;s revenue.</p>
       </Section>
     </div>
   );

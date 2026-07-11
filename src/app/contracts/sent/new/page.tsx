@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { db } from "@/lib/db";
+import { SubmitButton } from "@/components/SubmitButton";
 import { PageHeader } from "@/components/ui/Page";
 import { Field, FormGrid, Select, TextArea, TextInput } from "@/components/ui/Field";
 import { DocumentUploader } from "@/components/DocumentUploader";
@@ -57,7 +58,7 @@ export default async function NewSentContractPage() {
           <TextArea name="notes" rows={2} />
         </Field>
         <div className="flex justify-end">
-          <button className="btn-primary" type="submit">Save contract</button>
+          <SubmitButton>Save contract</SubmitButton>
         </div>
       </form>
     </div>

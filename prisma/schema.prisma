@@ -184,6 +184,7 @@ model Invoice {
 
   invoiceDate       DateTime
   dueDate           DateTime?
+  paidDate          DateTime? // when the invoice was actually paid — revenue is attributed to this date, not invoiceDate
 
   description       String?
   purchaseId        String?

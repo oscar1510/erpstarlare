@@ -81,15 +81,26 @@ export async function removeAutoDeadline(sourceModule: string, sourceId: string,
 
 /** Recompute UPCOMING/DUE_SOON/OVERDUE for every non-final deadline. Cheap enough to call on page load. */
 export async function refreshDeadlineStatuses() {
-  const open = await db.deadline.findMany({
-    where: { status: { notIn: ["COMPLETED", "CANCELLED"] } },
-  });
-  const now = Date.now();
-  for (const d of open) {
-    const days = (d.date.getTime() - now) / (1000 * 60 * 60 * 24);
-    const status = days < 0 ? "OVERDUE" : days <= 14 ? "DUE_SOON" : "UPCOMING";
-    if (status !== d.status) {
-      await db.deadline.update({ where: { id: d.id }, data: { status } });
-    }
-  }
+  // Runs on the dashboard on every load, so it must be cheap. Instead of
+  // fetching every open deadline and issuing one UPDATE per row (N+1 round
+  // trips — painfully slow when the DB is far from the function), recompute the
+  // three time-based buckets with three set-based updateMany statements.
+  const now = new Date();
+  const soon = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
+  const skip = ["COMPLETED", "CANCELLED"];
+
+  await Promise.all([
+    db.deadline.updateMany({
+      where: { status: { notIn: [...skip, "OVERDUE"] }, date: { lt: now } },
+      data: { status: "OVERDUE" },
+    }),
+    db.deadline.updateMany({
+      where: { status: { notIn: [...skip, "DUE_SOON"] }, date: { gte: now, lte: soon } },
+      data: { status: "DUE_SOON" },
+    }),
+    db.deadline.updateMany({
+      where: { status: { notIn: [...skip, "UPCOMING"] }, date: { gt: soon } },
+      data: { status: "UPCOMING" },
+    }),
+  ]);
 }

@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { db } from "@/lib/db";
+import { SubmitButton } from "@/components/SubmitButton";
 import { notFound } from "next/navigation";
 import { PageHeader, Section } from "@/components/ui/Page";
 import { Field, FormGrid, Select, TextArea, TextInput } from "@/components/ui/Field";
@@ -96,9 +97,7 @@ export default async function PersonDetailPage({ params }: { params: Promise<{ i
             <TextArea name="notes" defaultValue={person.notes ?? ""} />
           </Field>
           <div className="flex justify-end">
-            <button className="btn-primary" type="submit">
-              Save changes
-            </button>
+            <SubmitButton>Save changes</SubmitButton>
           </div>
         </form>
       </Section>
@@ -120,9 +119,7 @@ export default async function PersonDetailPage({ params }: { params: Promise<{ i
           </FormGrid>
           <DocumentUploader />
           <div className="flex justify-end">
-            <button className="btn-primary" type="submit">
-              Upload & scan
-            </button>
+            <SubmitButton>Upload & scan</SubmitButton>
           </div>
         </form>
         <DocumentList documents={documents} />
@@ -162,9 +159,7 @@ export default async function PersonDetailPage({ params }: { params: Promise<{ i
             <TextArea name="notes" />
           </Field>
           <div className="flex justify-end">
-            <button className="btn-primary" type="submit">
-              Add payment
-            </button>
+            <SubmitButton>Add payment</SubmitButton>
           </div>
         </form>
 
@@ -181,7 +176,7 @@ export default async function PersonDetailPage({ params }: { params: Promise<{ i
                 await updateCompensationStatus(c.id, fd.get("status") as string);
               }} className="flex items-center gap-2">
                 <Select name="status" options={COMPENSATION_STATUSES.map((s) => ({ value: s, label: labelize(s) }))} defaultValue={c.status} className="!py-1 !text-xs" />
-                <button className="btn-ghost !py-1 !text-xs" type="submit">Update</button>
+                <SubmitButton className="btn-ghost !py-1 !text-xs">Update</SubmitButton>
               </form>
             </div>
           ))}
@@ -215,9 +210,7 @@ export default async function PersonDetailPage({ params }: { params: Promise<{ i
             <TextArea name="notes" />
           </Field>
           <div className="flex justify-end">
-            <button className="btn-primary" type="submit">
-              Submit reimbursement
-            </button>
+            <SubmitButton>Submit reimbursement</SubmitButton>
           </div>
         </form>
 
@@ -234,7 +227,7 @@ export default async function PersonDetailPage({ params }: { params: Promise<{ i
                 await updateReimbursementStatus(r.id, fd.get("status") as string);
               }} className="flex items-center gap-2">
                 <Select name="status" options={REIMBURSEMENT_STATUSES.map((s) => ({ value: s, label: labelize(s) }))} defaultValue={r.status} className="!py-1 !text-xs" />
-                <button className="btn-ghost !py-1 !text-xs" type="submit">Update</button>
+                <SubmitButton className="btn-ghost !py-1 !text-xs">Update</SubmitButton>
               </form>
             </div>
           ))}

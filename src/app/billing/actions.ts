@@ -77,14 +77,22 @@ export async function createInvoice(formData: FormData) {
   redirect(`/billing/${invoice.id}`);
 }
 
-export async function updateInvoiceStatus(id: string, status: string) {
+export async function updateInvoiceStatus(id: string, status: string, paidDateInput?: Date | null) {
   const before = await db.invoice.findUniqueOrThrow({ where: { id } });
-  const invoice = await db.invoice.update({ where: { id }, data: { status } });
+
+  // When an invoice becomes PAID, record when it was actually paid so revenue
+  // is attributed to that month — not the (possibly much later) issue date. Use
+  // the date the user supplied, else keep any existing paid date, else today.
+  const data: { status: string; paidDate?: Date | null } = { status };
+  if (status === "PAID") {
+    data.paidDate = paidDateInput ?? before.paidDate ?? new Date();
+  }
+  const invoice = await db.invoice.update({ where: { id }, data });
 
   if (status === "PAID" && !invoice.ledgerEntryId) {
     const ledgerEntry = await db.ledgerEntry.create({
       data: {
-        date: new Date(),
+        date: invoice.paidDate ?? new Date(),
         type: "INCOME",
         category: "Client Revenue",
         amount: invoice.total,
@@ -202,6 +210,9 @@ export async function confirmStripeInvoice(documentId: string, formData: FormDat
   const invoiceDate = parseFormDate(formData.get("invoiceDate")) ?? new Date();
   const total = parseFormNumber(formData.get("amount")) ?? 0;
   const isPaid = str(formData, "isPaid") === "yes";
+  // When the invoice is already paid, attribute the revenue to the real payment
+  // date (defaulting to the invoice date) rather than "today".
+  const paidDate = isPaid ? parseFormDate(formData.get("paidDate")) ?? invoiceDate : null;
 
   const number = await nextInvoiceNumber(invoiceDate);
   const dueDate = parseFormDate(formData.get("dueDate"));
@@ -227,6 +238,7 @@ export async function confirmStripeInvoice(documentId: string, formData: FormDat
       clientTRNSnapshot,
       invoiceDate,
       dueDate,
+      paidDate,
       description,
       quantity: 1,
       unitPrice: total,
@@ -290,7 +302,7 @@ export async function confirmStripeInvoice(documentId: string, formData: FormDat
   if (isPaid) {
     const ledgerEntry = await db.ledgerEntry.create({
       data: {
-        date: invoiceDate,
+        date: paidDate ?? invoiceDate,
         type: "INCOME",
         category: "Stripe Revenue",
         amount: total,
@@ -311,7 +323,7 @@ export async function confirmStripeInvoice(documentId: string, formData: FormDat
         type: "INCOMING",
         amount: total,
         currency: invoice.currency,
-        date: invoiceDate,
+        date: paidDate ?? invoiceDate,
         method: "Stripe",
         payer: client?.name ?? str(formData, "clientName"),
         payee: "Starflare",

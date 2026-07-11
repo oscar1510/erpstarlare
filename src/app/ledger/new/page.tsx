@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { db } from "@/lib/db";
+import { SubmitButton } from "@/components/SubmitButton";
 import { PageHeader } from "@/components/ui/Page";
 import { Field, FormGrid, Select, TextArea, TextInput } from "@/components/ui/Field";
 import { CURRENCIES, LEDGER_TYPES, PAYMENT_METHODS, labelize } from "@/lib/constants";
@@ -46,7 +47,7 @@ export default async function NewLedgerEntryPage() {
           <TextArea name="notes" rows={2} />
         </Field>
         <div className="flex justify-end">
-          <button className="btn-primary" type="submit">Save entry</button>
+          <SubmitButton>Save entry</SubmitButton>
         </div>
       </form>
     </div>

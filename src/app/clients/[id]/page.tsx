@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { db } from "@/lib/db";
+import { SubmitButton } from "@/components/SubmitButton";
 import { notFound } from "next/navigation";
 import { PageHeader, Section } from "@/components/ui/Page";
 import { Field, FormGrid, Select, TextArea, TextInput } from "@/components/ui/Field";
@@ -84,7 +85,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
             <TextArea name="notes" defaultValue={client.notes ?? ""} />
           </Field>
           <div className="flex justify-end">
-            <button className="btn-primary" type="submit">Save changes</button>
+            <SubmitButton>Save changes</SubmitButton>
           </div>
         </form>
       </Section>
@@ -139,7 +140,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
             <TextArea name="notes" rows={2} />
           </Field>
           <div className="flex justify-end">
-            <button className="btn-primary" type="submit">Add purchase</button>
+            <SubmitButton>Add purchase</SubmitButton>
           </div>
         </form>
         <DataTable
@@ -180,7 +181,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
             </Field>
           </FormGrid>
           <div className="flex justify-end">
-            <button className="btn-primary" type="submit">Add subscription</button>
+            <SubmitButton>Add subscription</SubmitButton>
           </div>
         </form>
         <DataTable

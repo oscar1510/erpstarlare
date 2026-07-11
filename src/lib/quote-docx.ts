@@ -80,7 +80,9 @@ export async function renderQuoteDocx(q: QuoteDocData, logo?: { buffer: Buffer; 
   const header = twoCol(
     [
       logoPara,
-      para([run(STARFLARE_COMPANY.tagline, { bold: true, size: 7, color: FAINT })]),
+      // Only add the text tagline for the text fallback — an uploaded brand logo
+      // already contains its own tagline, so we don't duplicate it.
+      ...(logo && logoType ? [] : [para([run(STARFLARE_COMPANY.tagline, { bold: true, size: 7, color: FAINT })])]),
       para([run(STARFLARE_COMPANY.name, { bold: true, size: 9 })], { spacingAfter: 10 }),
       ...STARFLARE_COMPANY.addressLines.map((l) => para([run(l, { size: 9, color: MUTED })], { spacingAfter: 10 })),
     ],

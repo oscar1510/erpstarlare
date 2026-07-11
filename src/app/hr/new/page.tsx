@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { PageHeader } from "@/components/ui/Page";
+import { SubmitButton } from "@/components/SubmitButton";
 import { Field, FormGrid, Select, TextArea, TextInput } from "@/components/ui/Field";
 import { DocumentUploader } from "@/components/DocumentUploader";
 import { PERSON_STATUSES, PERSON_TYPES, CURRENCIES, labelize } from "@/lib/constants";
@@ -20,9 +21,7 @@ export default function NewPersonPage() {
           <div className="flex-1">
             <DocumentUploader name="file" label="Upload passport / ID" accept="image/*,application/pdf" required />
           </div>
-          <button type="submit" className="btn-primary whitespace-nowrap">
-            Scan &amp; create
-          </button>
+          <SubmitButton className="btn-primary whitespace-nowrap">Scan &amp; create</SubmitButton>
         </div>
       </form>
 
@@ -72,9 +71,7 @@ export default function NewPersonPage() {
           <TextArea name="notes" />
         </Field>
         <div className="flex justify-end gap-2">
-          <button type="submit" className="btn-primary">
-            Save person
-          </button>
+          <SubmitButton>Save person</SubmitButton>
         </div>
       </form>
     </div>

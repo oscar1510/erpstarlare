@@ -100,6 +100,10 @@ export default async function ReviewStripeInvoicePage({ params }: { params: Prom
                 defaultValue={fields.isPaid?.value ? "yes" : "no"}
               />
             </Field>
+            <Field label="Payment date (if already paid)">
+              <TextInput type="date" name="paidDate" defaultValue={formatDateInput(fields.invoiceDate?.value)} />
+              <p className="mt-1 text-xs text-slate-400">Revenue is counted in this month — set it to when the invoice was actually paid.</p>
+            </Field>
           </FormGrid>
           <Field label="Description">
             <TextArea name="description" defaultValue={fields.description?.value ?? ""} rows={2} />

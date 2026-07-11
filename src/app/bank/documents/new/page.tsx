@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { PageHeader } from "@/components/ui/Page";
+import { SubmitButton } from "@/components/SubmitButton";
 import { Field, Select, TextArea } from "@/components/ui/Field";
 import { DocumentUploader } from "@/components/DocumentUploader";
 import { BANK_DOCUMENT_TYPES, labelize } from "@/lib/constants";
@@ -19,7 +20,7 @@ export default function NewBankDocumentPage() {
           <TextArea name="notes" rows={2} />
         </Field>
         <div className="flex justify-end">
-          <button className="btn-primary" type="submit">Upload</button>
+          <SubmitButton>Upload</SubmitButton>
         </div>
       </form>
     </div>

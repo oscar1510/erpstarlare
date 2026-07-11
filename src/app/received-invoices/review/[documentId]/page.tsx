@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { db } from "@/lib/db";
+import { SubmitButton } from "@/components/SubmitButton";
 import { notFound } from "next/navigation";
 import { PageHeader, Section } from "@/components/ui/Page";
 import { Field, FormGrid, Select, TextArea, TextInput } from "@/components/ui/Field";
@@ -104,9 +105,7 @@ export default async function ReviewReceivedInvoicePage({ params }: { params: Pr
           <TextArea name="notes" rows={2} />
         </Field>
         <div className="flex justify-end">
-          <button className="btn-primary" type="submit">
-            Save supplier invoice
-          </button>
+          <SubmitButton>Save supplier invoice</SubmitButton>
         </div>
       </form>
     </div>

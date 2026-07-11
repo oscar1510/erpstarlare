@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { db } from "@/lib/db";
+import { SubmitButton } from "@/components/SubmitButton";
 import { PageHeader } from "@/components/ui/Page";
 import { DataTable } from "@/components/ui/Table";
 import { StatusBadge } from "@/components/ui/Badge";
@@ -79,7 +80,7 @@ export default async function DeadlinesPage({ searchParams }: { searchParams: Pr
               >
                 <StatusBadge status={d.status} />
                 <Select name="status" options={DEADLINE_STATUSES.map((s) => ({ value: s, label: labelize(s) }))} defaultValue={d.status} className="!py-1 !text-xs w-36" />
-                <button type="submit" className="btn-ghost !py-1 !text-xs">Save</button>
+                <SubmitButton className="btn-ghost !py-1 !text-xs">Save</SubmitButton>
               </form>
             ),
           },

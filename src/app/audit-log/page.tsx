@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { db } from "@/lib/db";
+import { SubmitButton } from "@/components/SubmitButton";
 import { PageHeader } from "@/components/ui/Page";
 import { DataTable } from "@/components/ui/Table";
 import { formatDateTime } from "@/lib/format";
@@ -43,7 +44,7 @@ export default async function AuditLogPage({
             <option key={a.action} value={a.action}>{a.action} ({a._count})</option>
           ))}
         </select>
-        <button type="submit" className="btn-secondary">Filter</button>
+        <SubmitButton className="btn-secondary">Filter</SubmitButton>
       </form>
 
       <DataTable

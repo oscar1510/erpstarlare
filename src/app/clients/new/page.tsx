@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { PageHeader } from "@/components/ui/Page";
+import { SubmitButton } from "@/components/SubmitButton";
 import { Field, FormGrid, Select, TextArea, TextInput } from "@/components/ui/Field";
 import { CLIENT_STATUSES, labelize } from "@/lib/constants";
 import { createClient } from "../actions";
@@ -49,9 +50,7 @@ export default function NewClientPage() {
           <TextArea name="notes" />
         </Field>
         <div className="flex justify-end">
-          <button type="submit" className="btn-primary">
-            Save client
-          </button>
+          <SubmitButton>Save client</SubmitButton>
         </div>
       </form>
     </div>

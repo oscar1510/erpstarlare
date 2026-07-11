@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { db } from "@/lib/db";
+import { SubmitButton } from "@/components/SubmitButton";
 import { notFound } from "next/navigation";
 import { PageHeader, Section } from "@/components/ui/Page";
 import { Field, FormGrid, Select, TextArea, TextInput } from "@/components/ui/Field";
@@ -153,9 +154,7 @@ export default async function ExpenseDetailPage({ params }: { params: Promise<{ 
         </Field>
 
         <div className="flex justify-end">
-          <button className="btn-primary" type="submit">
-            Save expense
-          </button>
+          <SubmitButton>Save expense</SubmitButton>
         </div>
       </form>
     </div>

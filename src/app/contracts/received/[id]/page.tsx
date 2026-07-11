@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { db } from "@/lib/db";
+import { SubmitButton } from "@/components/SubmitButton";
 import { notFound } from "next/navigation";
 import { PageHeader, Section } from "@/components/ui/Page";
 import { StatusBadge } from "@/components/ui/Badge";
@@ -41,7 +42,7 @@ export default async function ReceivedContractDetailPage({ params }: { params: P
       <Section title="Status">
         <form action={changeStatus} className="card p-4 flex items-center gap-3">
           <Select name="status" options={CONTRACT_STATUSES.map((s) => ({ value: s, label: labelize(s) }))} defaultValue={contract.status} className="w-56" />
-          <button className="btn-secondary" type="submit">Update status</button>
+          <SubmitButton className="btn-secondary">Update status</SubmitButton>
         </form>
       </Section>
 
