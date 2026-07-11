@@ -1,4 +1,5 @@
 import { db } from "./db";
+import { PAYMENT_ACCOUNTS } from "./constants";
 
 export interface ReportColumn {
   header: string;
@@ -79,6 +80,38 @@ export const REPORTS: Record<string, { label: string; fetch: () => Promise<Repor
           { metric: "Cash out", amount: cashOut },
           { metric: "Net cash movement", amount: cashIn - cashOut },
         ],
+      };
+    },
+  },
+  money_by_account: {
+    label: "Money by account",
+    fetch: async () => {
+      // Sum ledger income/expense per account. Seeded with every known account
+      // so accounts with no movement still show (at zero).
+      const entries = await db.ledgerEntry.findMany({ where: { account: { not: null } } });
+      const map = new Map<string, { inc: number; exp: number }>();
+      for (const a of PAYMENT_ACCOUNTS) map.set(a, { inc: 0, exp: 0 });
+      for (const e of entries) {
+        const acc = e.account!;
+        const cur = map.get(acc) ?? { inc: 0, exp: 0 };
+        if (e.type === "INCOME") cur.inc += e.amount;
+        else if (e.type === "EXPENSE") cur.exp += e.amount;
+        map.set(acc, cur);
+      }
+      const rows = [...map.entries()]
+        .map(([account, v]) => ({ account, in: v.inc, out: v.exp, net: v.inc - v.exp }))
+        .sort((a, b) => b.net - a.net);
+      const totals = rows.reduce((t, r) => ({ in: t.in + r.in, out: t.out + r.out, net: t.net + r.net }), { in: 0, out: 0, net: 0 });
+      rows.push({ account: "TOTAL", in: totals.in, out: totals.out, net: totals.net });
+      return {
+        title: "Money by account",
+        columns: [
+          { header: "Account", key: "account" },
+          { header: "In (AED)", key: "in" },
+          { header: "Out (AED)", key: "out" },
+          { header: "Net (in − out)", key: "net" },
+        ],
+        rows,
       };
     },
   },
