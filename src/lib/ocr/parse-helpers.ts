@@ -306,6 +306,11 @@ function bestAmountIn(span: string): number | null {
 export function findLabeledAmount(text: string, labels: string[]): FieldGuess<number> {
   let zeroFallback: FieldGuess<number> | null = null;
   for (const label of labels) {
+    // When searching for the *total*, a bare "Amount"/"Total" must not match the
+    // VAT/tax line ("VAT Amount: 9.05", "Tax Total"): that would report the tax
+    // as the amount. Skip a match whose label is immediately preceded by a
+    // VAT/tax word — unless we're deliberately looking for the VAT itself.
+    const isVatLabel = /vat|tax|iva|tva|gst/i.test(label);
     // Capture each occurrence of the label together with the rest of its line,
     // then pick the best amount from that line rather than the first token.
     const re = new RegExp(labelBoundary(label) + LABEL_GAP + "([^\\n]{0,40})", "gi");
@@ -314,6 +319,10 @@ export function findLabeledAmount(text: string, labels: string[]): FieldGuess<nu
     // Prefer the last occurrence: totals are conventionally the final labeled
     // line on a receipt/invoice (subtotal/tax lines come first).
     for (let i = matches.length - 1; i >= 0; i--) {
+      if (!isVatLabel) {
+        const before = text.slice(Math.max(0, (matches[i].index ?? 0) - 8), matches[i].index ?? 0);
+        if (/(?:VAT|Tax|GST|IVA|TVA|Serv(?:ice)?)\s*$/i.test(before)) continue; // this is the tax line, not the total
+      }
       const n = bestAmountIn(matches[i][1]);
       if (n === null) continue;
       if (n === 0) {
@@ -499,26 +508,45 @@ export function suggestExpenseCategory(text: string): FieldGuess<string> {
   return { value: "Other", confidence: 0.2 };
 }
 
+// Company/legal-form suffixes — a line with one of these is almost certainly the
+// merchant's registered name (strongest signal).
+const COMPANY_SUFFIX_RE = /\b(?:L\.?L\.?C|LTD|LIMITED|INC|LLP|PLC|FZE|FZCO|FZ-?LLC|EST|W\.?L\.?L|RETAIL|TRADING|GROUP|COMPANY|CO|ENTERPRISES?|INDUSTRIES|HOLDINGS?)\b/i;
+// Merchant-type / well-known-brand words (second-strongest signal).
+const MERCHANT_HINT_RE = /\b(?:RESTAURANT|CAFE|COFFEE|SUPERMARKET|HYPERMARKET|PHARMACY|STATION|STORES?|MARKET|BAKERY|GRILL|KITCHEN|ENOC|ADNOC|EPPCO|CARREFOUR|LULU|SPINNEYS|CHOITHRAMS|TALABAT|NOON|AMAZON|APPLE|IKEA|SALON|CLINIC|HOSPITAL)\b/i;
+
+/** A cleaned-up line that plausibly reads as a real business name. */
+function looksLikeVendorLine(line: string): boolean {
+  // Reject headers / labels / totals / contact lines.
+  if (/^(invoice|receipt|tax invoice|simplified|date|time|total|sub[\s-]?total|amount|balance|vat|tax|trn|no\.?|ref|order|table|qty|cash|card|change|tel|phone|fax|mob|bill to|www\.|http|purchase|approved|approval|merchant|terminal|batch|source|pump|site id|stan|aid|label)/i.test(line)) return false;
+  // Reject markup / URL / OCR-symbol noise (=, |, \, etc. never appear in real names).
+  if (/[<>@{}=|\\~^`]|www\.|https?:|\.com|\.ae\b/i.test(line)) return false;
+  // Must contain a real word: a run of ≥3 letters (kills logo garbage like "c=lgil", "lIgiI").
+  if (!/[A-Za-z]{3,}/.test(line)) return false;
+  const letters = (line.match(/[A-Za-z]/g) || []).length;
+  if (letters / line.length < 0.45) return false; // mostly symbols/digits → not a name
+  return true;
+}
+
 export function findVendorName(text: string): FieldGuess<string> {
-  // Heuristic: the merchant name is almost always one of the first few lines of
-  // a receipt — the first line that reads like a name rather than a header, an
-  // amount, a contact detail, or OCR noise. We scan a bit deeper and reject
-  // more junk than before, since the logo/name line is often preceded by
-  // scanner artefacts (e.g. an mangled "network>" line captured verbatim).
-  const startLabel = /^(invoice|receipt|tax invoice|simplified|date|time|total|sub[\s-]?total|amount|balance|vat|tax|trn|no\.?|ref|order|table|qty|cash|card|change|tel|phone|fax|mob|bill to|www\.|http)/i;
-  const junk = /[<>@{}]|www\.|https?:|\.com|\.ae\b/i; // markup / OCR noise / URLs are never the merchant name
-  const lines = text
+  // The merchant name sits in the first several lines of a receipt, but the very
+  // top is often a logo that OCRs to garbage. So we gather the first clean,
+  // name-like lines and prefer the one that looks most like a registered
+  // business (a legal suffix like LLC/RETAIL, then a merchant/brand word),
+  // falling back to the first clean line otherwise.
+  const candidates = text
     .split(/\n/)
     .map((l) => l.trim())
-    .filter((l) => l.length > 1 && l.length <= 42);
+    .filter((l) => l.length > 1 && l.length <= 42)
+    .slice(0, 14)
+    .filter(looksLikeVendorLine);
 
-  for (const line of lines.slice(0, 12)) {
-    if (startLabel.test(line)) continue;
-    if (junk.test(line)) continue;
-    if (/^[0-9\s.,:/'"()#*+_=-]+$/.test(line)) continue; // no letters at all
-    const letters = (line.match(/[A-Za-z]/g) || []).length;
-    if (letters < 3 || letters / line.length < 0.4) continue; // too few letters to be a name
-    return { value: line, confidence: 0.45 };
-  }
-  return { value: null, confidence: 0 };
+  if (candidates.length === 0) return { value: null, confidence: 0 };
+
+  const withSuffix = candidates.find((l) => COMPANY_SUFFIX_RE.test(l));
+  if (withSuffix) return { value: withSuffix.replace(/\s+/g, " "), confidence: 0.7 };
+
+  const withHint = candidates.find((l) => MERCHANT_HINT_RE.test(l));
+  if (withHint) return { value: withHint.replace(/\s+/g, " "), confidence: 0.6 };
+
+  return { value: candidates[0].replace(/\s+/g, " "), confidence: 0.45 };
 }
