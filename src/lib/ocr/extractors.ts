@@ -4,6 +4,7 @@ import {
   findBankMerchant,
   findBilledToDetails,
   findCurrency,
+  findDateForLabel,
   findTransactionAmount,
   findEmail,
   findEmiratesId,
@@ -293,6 +294,17 @@ function findIdName(text: string): FieldGuess<string> {
   if (surname || given) {
     return { value: [given, surname].filter(Boolean).join(" ").trim(), confidence: 0.6 };
   }
+  // ID cards (e.g. UAE Resident Identity Card): the English name follows "Name:"
+  // and often wraps to a second line, with an Arabic name nearby. Capture up to
+  // the next field label and keep only the Latin-script part.
+  const m = text.match(/(?<![A-Za-z])Name\b\s*:?\s*([\s\S]{0,90}?)(?:Date of Birth|Nationality|Sex\b|ID Number|Signature|\n\s*\n|$)/i);
+  if (m) {
+    const latin = m[1]
+      .replace(/[^A-Za-z '.-]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    if (latin.length >= 3 && /[A-Za-z]{2,}/.test(latin)) return { value: latin, confidence: 0.65 };
+  }
   return findLabeledText(text, ["Full Name", "Name of Holder", "Holder", "Name"], 50);
 }
 
@@ -302,9 +314,12 @@ export function extractPersonDocumentFields(text: string): ExtractedFields {
     nationality: findLabeledText(text, ["Nationality"], 30),
     passportNumber: findPassportNumber(text),
     emiratesId: findEmiratesId(text),
-    visaExpiry: findLabeledDate(text, ["Visa Expiry", "Expiry Date", "Date of Expiry"]),
-    issueDate: findLabeledDate(text, ["Issue Date", "Date of Issue"]),
-    expiryDate: findLabeledDate(text, ["Expiry Date", "Date of Expiry", "Expiry"]),
+    // Bilingual ID cards put the date after Arabic text / on the next line, so
+    // scan forward from the label (findDateForLabel) rather than same-line only.
+    // Expiry is matched by its own label so it never picks up the issue date.
+    visaExpiry: findDateForLabel(text, ["Visa Expiry", "Expiry Date", "Date of Expiry", "Expiry"]),
+    issueDate: findDateForLabel(text, ["Issuing Date", "Issue Date", "Date of Issue"]),
+    expiryDate: findDateForLabel(text, ["Expiry Date", "Date of Expiry", "Expiry"]),
     contractStart: findLabeledDate(text, ["Contract Start", "Start Date", "Effective Date"]),
     contractEnd: findLabeledDate(text, ["Contract End", "End Date", "Termination Date"]),
     compensation: findLabeledAmount(text, ["Salary", "Compensation", "Monthly Salary", "Remuneration"]),

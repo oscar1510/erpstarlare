@@ -230,6 +230,32 @@ export function findLabeledDate(text: string, labels: string[]): FieldGuess<Date
   return { value: null, confidence: 0 };
 }
 
+// A single date token in the common written forms.
+const DATE_TOKEN_RE =
+  /\b(\d{1,2}[/.\-]\d{1,2}[/.\-](?:19|20)\d{2}|(?:19|20)\d{2}[/.\-]\d{1,2}[/.\-]\d{1,2}|\d{1,2}[ -][A-Za-z]{3,9}\.?[ -](?:19|20)\d{2})\b/;
+
+/**
+ * Finds the first date that appears *after* a label, scanning across newlines
+ * and non-Latin text. UAE/GCC ID cards and licences print bilingual labels
+ * where the date sits after Arabic text and/or on the next line
+ * ("Expiry Date / تاريخ الانتهاء\n07/10/2026") — findLabeledDate can't reach it
+ * because it stops at the newline, so this dedicated scan is used for IDs.
+ */
+export function findDateForLabel(text: string, labels: string[]): FieldGuess<Date> {
+  for (const label of labels) {
+    const re = new RegExp(labelBoundary(label), "i");
+    const m = re.exec(text);
+    if (!m) continue;
+    const window = text.slice(m.index + m[0].length, m.index + m[0].length + 90);
+    const dm = window.match(DATE_TOKEN_RE);
+    if (dm) {
+      const d = parseDateLoose(dm[1]);
+      if (d) return { value: d, confidence: 0.8, raw: dm[1] };
+    }
+  }
+  return { value: null, confidence: 0 };
+}
+
 const CURRENCY_SYMBOLS: Record<string, string> = {
   "$": "USD",
   "€": "EUR",
