@@ -297,13 +297,24 @@ function findIdName(text: string): FieldGuess<string> {
   }
   // ID cards (e.g. UAE Resident Identity Card): the "Name:" label is often
   // OCR-mangled ("Narde:", "AME:") and the name wraps to a second line, so a
-  // strict label match fails. Instead score each line by how many Title-Case
-  // words it holds after any label prefix, ignoring document boilerplate — the
-  // person's name is the run of proper-case words that isn't a header.
-  const STOP = /^(united|arab|emirates|federal|authority|identity|citizenship|customs|port|security|resident|card|number|date|birth|nationality|issuing|expiry|signature|sex|occupation|employer|place|student|holder|name|dubai|abu|dhabi|sharjah|ajman|fujairah|india|pakistan|philippines|nepal|egypt|jordan)$/i;
+  // strict label match fails. Two robust constraints pin the name down:
+  //   1. On these cards the name is always ABOVE "Date of Birth"/"Nationality" —
+  //      the employer/occupation/place lines are below, so we only look above.
+  //   2. Skip any line whose label is employer/occupation/place/school/etc.
+  // Within that region, take the line with the most Title-Case words (the name).
+  const lines = text.split(/\n/);
+  let boundary = lines.findIndex((l) => /date of birth|\bd\.?o\.?b\b|nationality/i.test(l));
+  if (boundary < 0) boundary = lines.length;
+
+  const STOP = /^(united|arab|emirates|federal|authority|identity|citizenship|customs|port|security|resident|card|number|date|birth|nationality|issuing|expiry|signature|sex|occupation|employer|place|student|holder|name|dubai|abu|dhabi|sharjah|ajman|fujairah|india|pakistan|philippines|nepal|egypt|jordan|resident)$/i;
+  const EXCLUDE_LABEL = /employer|occupation|issuing|place|school|business|company|authority|nationality|birth/i;
+
   let best: { score: number; name: string } | null = null;
-  for (const rawLine of text.split(/\n/)) {
-    const afterColon = rawLine.includes(":") ? rawLine.slice(rawLine.indexOf(":") + 1) : rawLine;
+  for (const rawLine of lines.slice(0, boundary)) {
+    const colon = rawLine.indexOf(":");
+    const labelPart = colon >= 0 ? rawLine.slice(0, colon) : "";
+    if (EXCLUDE_LABEL.test(labelPart)) continue;
+    const afterColon = colon >= 0 ? rawLine.slice(colon + 1) : rawLine;
     const tokens = (afterColon.match(/[A-Z][a-z]{2,}/g) || []).filter((t) => !STOP.test(t));
     if (tokens.length >= 2 && (!best || tokens.length > best.score)) {
       best = { score: tokens.length, name: tokens.join(" ") };
@@ -319,9 +330,11 @@ export function extractPersonDocumentFields(text: string): ExtractedFields {
   const mrz = parseMrzDates(text);
   const mrzExpiry: FieldGuess<Date> | null = mrz.expiry ? { value: mrz.expiry, confidence: 0.8 } : null;
 
-  // Nationality often trails OCR noise ("India RS") — keep only the country word.
+  // Nationality often trails OCR noise ("India RS") — keep the Title-Case
+  // country words ("India RS" → "India", "United Kingdom" → "United Kingdom").
   const natRaw = findLabeledText(text, ["Nationality"], 30);
-  const natClean = natRaw.value ? (natRaw.value.match(/[A-Z][a-z]{2,}/)?.[0] ?? natRaw.value) : null;
+  const natWords = natRaw.value ? natRaw.value.match(/[A-Z][a-z]{2,}/g) : null;
+  const natClean = natWords && natWords.length ? natWords.join(" ") : natRaw.value;
 
   // Expiry: prefer the MRZ, fall back to a forward scan from the printed label.
   const expiry = mrzExpiry ?? findDateForLabel(text, ["Expiry Date", "Date of Expiry", "Expiry"]);
