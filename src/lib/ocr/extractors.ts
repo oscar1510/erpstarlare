@@ -5,6 +5,7 @@ import {
   findBilledToDetails,
   findCurrency,
   findDateForLabel,
+  parseMrzDates,
   findTransactionAmount,
   findEmail,
   findEmiratesId,
@@ -294,36 +295,52 @@ function findIdName(text: string): FieldGuess<string> {
   if (surname || given) {
     return { value: [given, surname].filter(Boolean).join(" ").trim(), confidence: 0.6 };
   }
-  // ID cards (e.g. UAE Resident Identity Card): the English name follows "Name:"
-  // and often wraps to a second line, with an Arabic name nearby. Capture up to
-  // the next field label and keep only the Latin-script part.
-  const m = text.match(/(?<![A-Za-z])Name\b\s*:?\s*([\s\S]{0,90}?)(?:Date of Birth|Nationality|Sex\b|ID Number|Signature|\n\s*\n|$)/i);
-  if (m) {
-    const latin = m[1]
-      .replace(/[^A-Za-z '.-]+/g, " ")
-      .replace(/\s+/g, " ")
-      .trim();
-    if (latin.length >= 3 && /[A-Za-z]{2,}/.test(latin)) return { value: latin, confidence: 0.65 };
+  // ID cards (e.g. UAE Resident Identity Card): the "Name:" label is often
+  // OCR-mangled ("Narde:", "AME:") and the name wraps to a second line, so a
+  // strict label match fails. Instead score each line by how many Title-Case
+  // words it holds after any label prefix, ignoring document boilerplate — the
+  // person's name is the run of proper-case words that isn't a header.
+  const STOP = /^(united|arab|emirates|federal|authority|identity|citizenship|customs|port|security|resident|card|number|date|birth|nationality|issuing|expiry|signature|sex|occupation|employer|place|student|holder|name|dubai|abu|dhabi|sharjah|ajman|fujairah|india|pakistan|philippines|nepal|egypt|jordan)$/i;
+  let best: { score: number; name: string } | null = null;
+  for (const rawLine of text.split(/\n/)) {
+    const afterColon = rawLine.includes(":") ? rawLine.slice(rawLine.indexOf(":") + 1) : rawLine;
+    const tokens = (afterColon.match(/[A-Z][a-z]{2,}/g) || []).filter((t) => !STOP.test(t));
+    if (tokens.length >= 2 && (!best || tokens.length > best.score)) {
+      best = { score: tokens.length, name: tokens.join(" ") };
+    }
   }
+  if (best) return { value: best.name, confidence: 0.6 };
   return findLabeledText(text, ["Full Name", "Name of Holder", "Holder", "Name"], 50);
 }
 
 export function extractPersonDocumentFields(text: string): ExtractedFields {
+  // The MRZ (machine-readable strip) carries the expiry date reliably even when
+  // the printed date is OCR-garbled ("07/10/2026" → "OT10/2026").
+  const mrz = parseMrzDates(text);
+  const mrzExpiry: FieldGuess<Date> | null = mrz.expiry ? { value: mrz.expiry, confidence: 0.8 } : null;
+
+  // Nationality often trails OCR noise ("India RS") — keep only the country word.
+  const natRaw = findLabeledText(text, ["Nationality"], 30);
+  const natClean = natRaw.value ? (natRaw.value.match(/[A-Z][a-z]{2,}/)?.[0] ?? natRaw.value) : null;
+
+  // Expiry: prefer the MRZ, fall back to a forward scan from the printed label.
+  const expiry = mrzExpiry ?? findDateForLabel(text, ["Expiry Date", "Date of Expiry", "Expiry"]);
+  const visaExpiry = mrzExpiry ?? findDateForLabel(text, ["Visa Expiry", "Expiry Date", "Date of Expiry", "Expiry"]);
+
   return {
     name: findIdName(text),
-    nationality: findLabeledText(text, ["Nationality"], 30),
+    nationality: { value: natClean, confidence: natClean ? natRaw.confidence : 0 },
     passportNumber: findPassportNumber(text),
     emiratesId: findEmiratesId(text),
-    // Bilingual ID cards put the date after Arabic text / on the next line, so
-    // scan forward from the label (findDateForLabel) rather than same-line only.
-    // Expiry is matched by its own label so it never picks up the issue date.
-    visaExpiry: findDateForLabel(text, ["Visa Expiry", "Expiry Date", "Date of Expiry", "Expiry"]),
+    visaExpiry,
     issueDate: findDateForLabel(text, ["Issuing Date", "Issue Date", "Date of Issue"]),
-    expiryDate: findDateForLabel(text, ["Expiry Date", "Date of Expiry", "Expiry"]),
-    contractStart: findLabeledDate(text, ["Contract Start", "Start Date", "Effective Date"]),
-    contractEnd: findLabeledDate(text, ["Contract End", "End Date", "Termination Date"]),
+    expiryDate: expiry,
+    // An ID/passport carries no employment-contract dates — never fall back to a
+    // stray date (that was pulling the birth date into these fields).
+    contractStart: findLabeledDate(text, ["Contract Start", "Start Date", "Effective Date"], false),
+    contractEnd: findLabeledDate(text, ["Contract End", "End Date", "Termination Date"], false),
     compensation: findLabeledAmount(text, ["Salary", "Compensation", "Monthly Salary", "Remuneration"]),
-    signatureDate: findLabeledDate(text, ["Signed on", "Signature Date", "Date Signed"]),
+    signatureDate: findLabeledDate(text, ["Signed on", "Signature Date", "Date Signed"], false),
   };
 }
 

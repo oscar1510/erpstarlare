@@ -211,8 +211,14 @@ function labelBoundary(label: string): string {
  */
 const LABEL_GAP = "[ \\t]*:?[ \\t]*\\n?[ \\t]*";
 
-/** Find the best-matching date near a label (e.g. "Invoice Date", "Due Date"). */
-export function findLabeledDate(text: string, labels: string[]): FieldGuess<Date> {
+/**
+ * Find the best-matching date near a label (e.g. "Invoice Date", "Due Date").
+ * `allowFallback` (default true) returns the first date anywhere when no label
+ * matches — useful for single-date receipts, but dangerous for multi-date
+ * documents (an ID card would hand a "Contract Start" lookup the birth date), so
+ * pass false there.
+ */
+export function findLabeledDate(text: string, labels: string[], allowFallback = true): FieldGuess<Date> {
   for (const label of labels) {
     const re = new RegExp(labelBoundary(label) + LABEL_GAP + "([^\\n]{4,30})", "i");
     const m = text.match(re);
@@ -221,13 +227,42 @@ export function findLabeledDate(text: string, labels: string[]): FieldGuess<Date
       if (d) return { value: d, confidence: 0.85, raw: m[1].trim() };
     }
   }
-  // fallback: first date-looking token anywhere
-  const lines = text.split(/\n/);
-  for (const line of lines) {
-    const d = parseDateLoose(line);
-    if (d) return { value: d, confidence: 0.35, raw: line.trim() };
+  if (allowFallback) {
+    // fallback: first date-looking token anywhere
+    const lines = text.split(/\n/);
+    for (const line of lines) {
+      const d = parseDateLoose(line);
+      if (d) return { value: d, confidence: 0.35, raw: line.trim() };
+    }
   }
   return { value: null, confidence: 0 };
+}
+
+/**
+ * Parse the machine-readable zone (MRZ) at the bottom of ID cards (TD1 format)
+ * and passports (TD3). The second line encodes birth date, sex, expiry date and
+ * nationality in fixed positions — far more reliable than the human-readable
+ * dates, which OCR often mangles (e.g. "07/10/2026" → "OT10/2026"). Returns the
+ * birth and expiry dates when found.
+ */
+export function parseMrzDates(text: string): { dob: Date | null; expiry: Date | null } {
+  const compact = text.replace(/[ \t]/g, "");
+  // birthdate(6) checkdigit(1) sex(1) expiry(6) checkdigit(1) nationality(3)
+  const m = compact.match(/(\d{6})\d[MFX<](\d{6})\d[A-Z<]{3}/);
+  if (!m) return { dob: null, expiry: null };
+  return { dob: mrzDate(m[1], false), expiry: mrzDate(m[2], true) };
+}
+
+function mrzDate(yymmdd: string, isFuture: boolean): Date | null {
+  const yy = Number(yymmdd.slice(0, 2));
+  const mm = Number(yymmdd.slice(2, 4));
+  const dd = Number(yymmdd.slice(4, 6));
+  if (mm < 1 || mm > 12 || dd < 1 || dd > 31) return null;
+  const nowYY = new Date().getFullYear() % 100;
+  // Expiry dates are in the 2000s; birth dates in the past (00-nowYY → 20xx, else 19xx).
+  const year = isFuture ? 2000 + yy : yy <= nowYY ? 2000 + yy : 1900 + yy;
+  const d = new Date(Date.UTC(year, mm - 1, dd, 12));
+  return Number.isNaN(d.getTime()) ? null : d;
 }
 
 // A single date token in the common written forms.
