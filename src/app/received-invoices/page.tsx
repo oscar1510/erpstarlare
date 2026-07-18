@@ -5,6 +5,8 @@ import { PageHeader } from "@/components/ui/Page";
 import { DataTable } from "@/components/ui/Table";
 import { StatusBadge } from "@/components/ui/Badge";
 import { formatDate, formatMoney } from "@/lib/format";
+import { ConfirmButton } from "@/components/ConfirmButton";
+import { alignSupplierExpenseDates } from "./actions";
 import Link from "next/link";
 
 export default async function ReceivedInvoicesPage() {
@@ -21,6 +23,15 @@ export default async function ReceivedInvoicesPage() {
           </Link>
         }
       />
+      <div className="mb-4">
+        <ConfirmButton
+          action={alignSupplierExpenseDates}
+          label="🔧 Fix expense dates (set = invoice date)"
+          pendingLabel="Fixing…"
+          confirm="Realign every paid supplier invoice's expense date to its invoice date? Use this if a supplier expense shows up in the wrong month on the dashboard."
+          className="btn-secondary !py-1 !text-xs"
+        />
+      </div>
       <DataTable
         rows={invoices}
         href={(i) => `/received-invoices/${i.id}`}

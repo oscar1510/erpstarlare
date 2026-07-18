@@ -94,6 +94,25 @@ export async function deleteReceivedInvoice(id: string) {
   redirect("/received-invoices?saved=Received+invoice+deleted");
 }
 
+/**
+ * One-click cleanup: realign every paid supplier invoice's ledger expense date
+ * to its invoice date. Fixes historical entries booked as "today" that showed
+ * up in the wrong month on the dashboard.
+ */
+export async function alignSupplierExpenseDates() {
+  const invoices = await db.receivedInvoice.findMany({ where: { paymentStatus: "PAID", ledgerEntryId: { not: null } } });
+  let fixed = 0;
+  for (const ri of invoices) {
+    const target = ri.invoiceDate ?? ri.dueDate;
+    if (!target || !ri.ledgerEntryId) continue;
+    await db.ledgerEntry.update({ where: { id: ri.ledgerEntryId }, data: { date: target, account: ri.account } }).catch(() => {});
+    fixed++;
+  }
+  revalidatePath("/received-invoices");
+  revalidatePath("/");
+  redirect(`/received-invoices?saved=${encodeURIComponent(`Realigned ${fixed} supplier expense date(s)`)}`);
+}
+
 export async function updateReceivedInvoiceStatus(id: string, status: string, account?: string | null) {
   const ri = await db.receivedInvoice.update({
     where: { id },
