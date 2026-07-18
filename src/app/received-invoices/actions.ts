@@ -103,7 +103,10 @@ export async function updateReceivedInvoiceStatus(id: string, status: string, ac
   if (status === "PAID" && !ri.ledgerEntryId) {
     const ledgerEntry = await db.ledgerEntry.create({
       data: {
-        date: new Date(),
+        // Attribute the expense to the invoice's own date (when the cost was
+        // incurred), not "today" — otherwise a June invoice paid in July shows
+        // up as a July expense on the dashboard.
+        date: ri.invoiceDate ?? ri.dueDate ?? new Date(),
         type: "EXPENSE",
         category: ri.expenseCategory ?? "Supplier expense",
         amount: ri.amount ?? 0,
@@ -117,6 +120,12 @@ export async function updateReceivedInvoiceStatus(id: string, status: string, ac
       },
     });
     await db.receivedInvoice.update({ where: { id }, data: { ledgerEntryId: ledgerEntry.id } });
+  } else if (status === "PAID" && ri.ledgerEntryId) {
+    // Repair an existing entry that may have been dated "today": realign it (and
+    // the account) to the invoice date so the dashboard month is correct.
+    await db.ledgerEntry
+      .update({ where: { id: ri.ledgerEntryId }, data: { date: ri.invoiceDate ?? ri.dueDate ?? new Date(), account: ri.account } })
+      .catch(() => {});
   }
 
   revalidatePath(`/received-invoices/${id}`);

@@ -8,7 +8,8 @@ import { DocumentUploader } from "@/components/DocumentUploader";
 import { CURRENCIES, PAYMENT_ACCOUNTS, PAYMENT_METHODS, RECONCILIATION_STATUSES, labelize } from "@/lib/constants";
 import { createPayment } from "../actions";
 
-export default async function NewPaymentPage() {
+export default async function NewPaymentPage({ searchParams }: { searchParams: Promise<{ invoiceId?: string; receivedInvoiceId?: string }> }) {
+  const sp = await searchParams;
   const [clients, people, invoices, receivedInvoices, bankTransactions] = await Promise.all([
     db.client.findMany({ orderBy: { name: "asc" } }),
     db.person.findMany({ orderBy: { firstName: "asc" } }),
@@ -23,7 +24,7 @@ export default async function NewPaymentPage() {
       <form action={createPayment} className="card p-5 space-y-4">
         <FormGrid>
           <Field label="Type">
-            <Select name="type" options={[{ value: "INCOMING", label: "Incoming" }, { value: "OUTGOING", label: "Outgoing" }]} defaultValue="INCOMING" />
+            <Select name="type" options={[{ value: "INCOMING", label: "Incoming" }, { value: "OUTGOING", label: "Outgoing" }]} defaultValue={sp.receivedInvoiceId ? "OUTGOING" : "INCOMING"} />
           </Field>
           <Field label="Date">
             <TextInput type="date" name="date" defaultValue={new Date().toISOString().slice(0, 10)} />
@@ -56,10 +57,10 @@ export default async function NewPaymentPage() {
             <TextInput name="vendorName" />
           </Field>
           <Field label="Related issued invoice">
-            <Select name="invoiceId" options={invoices.map((i) => ({ value: i.id, label: i.number }))} placeholder="None" />
+            <Select name="invoiceId" options={invoices.map((i) => ({ value: i.id, label: i.number }))} defaultValue={sp.invoiceId ?? ""} placeholder="None" />
           </Field>
           <Field label="Related received invoice">
-            <Select name="receivedInvoiceId" options={receivedInvoices.map((i) => ({ value: i.id, label: `${i.vendorName ?? "Vendor"} · ${i.invoiceNumber ?? i.id.slice(0, 6)}` }))} placeholder="None" />
+            <Select name="receivedInvoiceId" options={receivedInvoices.map((i) => ({ value: i.id, label: `${i.vendorName ?? "Vendor"} · ${i.invoiceNumber ?? i.id.slice(0, 6)}` }))} defaultValue={sp.receivedInvoiceId ?? ""} placeholder="None" />
           </Field>
           <Field label="Match bank transaction">
             <Select

@@ -11,10 +11,11 @@ import { DocumentList } from "@/components/DocumentList";
 import { formatDate, formatDateInput, formatMoney } from "@/lib/format";
 import { CURRENCIES, COMPENSATION_STATUSES, PAYMENT_METHODS, PERSON_STATUSES, PERSON_TYPES, REIMBURSEMENT_STATUSES, labelize } from "@/lib/constants";
 import { DeleteButton } from "@/components/DeleteButton";
+import Link from "next/link";
 import {
   addCompensationPayment,
-  addReimbursement,
   deletePerson,
+  deleteReimbursement,
   updateCompensationStatus,
   updatePerson,
   updateReimbursementStatus,
@@ -26,16 +27,16 @@ export default async function PersonDetailPage({ params }: { params: Promise<{ i
   const person = await db.person.findUnique({ where: { id } });
   if (!person) notFound();
 
-  const [documents, compensations, reimbursements] = await Promise.all([
+  const [documents, compensations, reimbursements, linkedExpenses] = await Promise.all([
     db.document.findMany({ where: { personId: id }, orderBy: { createdAt: "desc" } }),
     db.compensationPayment.findMany({ where: { personId: id }, orderBy: { createdAt: "desc" } }),
     db.reimbursement.findMany({ where: { personId: id }, orderBy: { createdAt: "desc" } }),
+    db.expense.findMany({ where: { OR: [{ personId: id }, { reimbursePersonId: id }] }, orderBy: { createdAt: "desc" } }),
   ]);
 
   const updateAction = updatePerson.bind(null, id);
   const uploadAction = uploadPersonDocument.bind(null, id);
   const compensationAction = addCompensationPayment.bind(null, id);
-  const reimbursementAction = addReimbursement.bind(null, id);
 
   return (
     <div className="max-w-4xl space-y-8">
@@ -183,55 +184,49 @@ export default async function PersonDetailPage({ params }: { params: Promise<{ i
         </div>
       </Section>
 
-      <Section title="Expense reimbursements">
-        <form action={reimbursementAction} className="card p-4 space-y-3 mb-4">
-          <FormGrid>
-            <Field label="Amount">
-              <TextInput type="number" step="0.01" name="amount" />
-              <p className="text-xs text-slate-400 mt-1">Leave blank to use the OCR-detected amount from the receipt.</p>
-            </Field>
-            <Field label="Currency">
-              <Select name="currency" options={CURRENCIES.map((c) => ({ value: c, label: c }))} defaultValue="AED" />
-            </Field>
-            <Field label="Category">
-              <TextInput name="category" placeholder="e.g. Travel" />
-            </Field>
-            <Field label="Expense date">
-              <TextInput type="date" name="expenseDate" />
-            </Field>
-            <Field label="Status">
-              <Select name="status" options={REIMBURSEMENT_STATUSES.map((s) => ({ value: s, label: labelize(s) }))} defaultValue="SUBMITTED" />
-            </Field>
-          </FormGrid>
-          <Field label="Receipt (OCR will read it automatically)">
-            <DocumentUploader name="receipt" label="Upload receipt" />
-          </Field>
-          <Field label="Notes">
-            <TextArea name="notes" />
-          </Field>
-          <div className="flex justify-end">
-            <SubmitButton>Submit reimbursement</SubmitButton>
-          </div>
-        </form>
-
+      <Section
+        title="Linked expenses"
+        actions={<Link href={`/expenses/new?personId=${id}`} className="btn-secondary !py-1 !text-xs">＋ Add expense</Link>}
+      >
+        <p className="mb-3 text-xs text-slate-500">Expenses recorded for this person (create and edit them in the Expenses module — this is a read-only view).</p>
         <div className="card divide-y divide-slate-100">
-          {reimbursements.length === 0 && <p className="p-4 text-sm text-slate-500">No reimbursements yet.</p>}
-          {reimbursements.map((r) => (
-            <div key={r.id} className="p-3 flex flex-wrap items-center justify-between gap-2">
+          {linkedExpenses.length === 0 && <p className="p-4 text-sm text-slate-500">No expenses linked to this person yet.</p>}
+          {linkedExpenses.map((e) => (
+            <Link key={e.id} href={`/expenses/${e.id}`} className="p-3 flex flex-wrap items-center justify-between gap-2 hover:bg-slate-50">
               <div>
-                <div className="font-medium">{formatMoney(r.amount, r.currency)} {r.category ? `· ${r.category}` : ""}</div>
-                <div className="text-xs text-slate-500">{formatDate(r.expenseDate)}</div>
+                <div className="font-medium">{e.vendor ?? "(expense)"} · {formatMoney(e.amount, e.currency)}</div>
+                <div className="text-xs text-slate-500">{formatDate(e.expenseDate)} {e.category ? `· ${e.category}` : ""}</div>
               </div>
-              <form action={async (fd: FormData) => {
-                "use server";
-                await updateReimbursementStatus(r.id, fd.get("status") as string);
-              }} className="flex items-center gap-2">
-                <Select name="status" options={REIMBURSEMENT_STATUSES.map((s) => ({ value: s, label: labelize(s) }))} defaultValue={r.status} className="!py-1 !text-xs" />
-                <SubmitButton className="btn-ghost !py-1 !text-xs">Update</SubmitButton>
-              </form>
-            </div>
+              <StatusBadge status={e.status} />
+            </Link>
           ))}
         </div>
+
+        {reimbursements.length > 0 && (
+          <>
+            <div className="mt-5 mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Reimbursements</div>
+            <div className="card divide-y divide-slate-100">
+              {reimbursements.map((r) => (
+                <div key={r.id} className="p-3 flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <div className="font-medium">{formatMoney(r.amount, r.currency)} {r.category ? `· ${r.category}` : ""}</div>
+                    <div className="text-xs text-slate-500">{formatDate(r.expenseDate)} · {labelize(r.status)}</div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <form action={async (fd: FormData) => {
+                      "use server";
+                      await updateReimbursementStatus(r.id, fd.get("status") as string);
+                    }} className="flex items-center gap-2">
+                      <Select name="status" options={REIMBURSEMENT_STATUSES.map((s) => ({ value: s, label: labelize(s) }))} defaultValue={r.status} className="!py-1 !text-xs" />
+                      <SubmitButton className="btn-ghost !py-1 !text-xs">Update</SubmitButton>
+                    </form>
+                    <DeleteButton action={deleteReimbursement.bind(null, id, r.id)} label="🗑" confirm="Remove this reimbursement? This cannot be undone." />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
       </Section>
     </div>
   );

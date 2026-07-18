@@ -10,6 +10,7 @@ import { DocumentList } from "@/components/DocumentList";
 import { formatDate, formatMoney } from "@/lib/format";
 import { PAYMENT_ACCOUNTS, RECEIVED_INVOICE_STATUSES, labelize } from "@/lib/constants";
 import { DeleteButton } from "@/components/DeleteButton";
+import Link from "next/link";
 import { updateReceivedInvoiceStatus, deleteReceivedInvoice } from "../actions";
 
 export default async function ReceivedInvoiceDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -17,7 +18,10 @@ export default async function ReceivedInvoiceDetailPage({ params }: { params: Pr
   const ri = await db.receivedInvoice.findUnique({ where: { id } });
   if (!ri) notFound();
 
-  const documents = ri.documentId ? await db.document.findMany({ where: { id: ri.documentId } }) : [];
+  const [documents, linkedPayments] = await Promise.all([
+    ri.documentId ? db.document.findMany({ where: { id: ri.documentId } }) : Promise.resolve([]),
+    db.payment.findMany({ where: { receivedInvoiceId: id }, orderBy: { date: "desc" } }),
+  ]);
 
   async function changeStatus(fd: FormData) {
     "use server";
@@ -63,6 +67,21 @@ export default async function ReceivedInvoiceDetailPage({ params }: { params: Pr
           </div>
           <SubmitButton className="btn-secondary">Update status</SubmitButton>
         </form>
+      </Section>
+
+      <Section title="Payments" actions={<Link href={`/payments/new?receivedInvoiceId=${id}`} className="btn-secondary !py-1 !text-xs">＋ Link a payment</Link>}>
+        <div className="card divide-y divide-slate-100">
+          {linkedPayments.length === 0 && <p className="p-4 text-sm text-slate-500">No payments linked yet.</p>}
+          {linkedPayments.map((p) => (
+            <Link key={p.id} href={`/payments/${p.id}`} className="p-3 flex flex-wrap items-center justify-between gap-2 hover:bg-slate-50">
+              <div>
+                <div className="font-medium">{formatMoney(p.amount, p.currency)} {p.account ? `· ${p.account}` : ""}</div>
+                <div className="text-xs text-slate-500">{formatDate(p.date)} {p.method ? `· ${p.method}` : ""}</div>
+              </div>
+              {p.proofDocumentId && <span className="text-xs text-slate-400">📎 receipt attached</span>}
+            </Link>
+          ))}
+        </div>
       </Section>
 
       <Section title="Document">

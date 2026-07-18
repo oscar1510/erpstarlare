@@ -8,6 +8,7 @@ import { StatusBadge } from "@/components/ui/Badge";
 import { Field, FormGrid, Select, TextArea, TextInput } from "@/components/ui/Field";
 import { formatDate, formatDateInput, formatMoney } from "@/lib/format";
 import { CURRENCIES, INVOICE_STATUSES, PAYMENT_ACCOUNTS, PAYMENT_METHODS, labelize } from "@/lib/constants";
+import Link from "next/link";
 import { sendInvoiceEmail, updateInvoiceStatus, updateInvoiceDetails, trashInvoice } from "../actions";
 
 export default async function InvoiceDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -21,6 +22,7 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
 
   // The branded Starflare document (new invoice layout) linked to this invoice, if any.
   const brandedDoc = await db.quotation.findFirst({ where: { invoiceId: id } });
+  const linkedPayments = await db.payment.findMany({ where: { invoiceId: id }, orderBy: { date: "desc" } });
 
   async function changeStatus(fd: FormData) {
     "use server";
@@ -152,6 +154,21 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
           <SubmitButton className="btn-secondary">Update status</SubmitButton>
         </form>
         <p className="mt-2 text-xs text-slate-500">Revenue counts in the month of the payment date — so an invoice paid last year won&apos;t show up in this month&apos;s revenue.</p>
+      </Section>
+
+      <Section title="Payments" actions={<Link href={`/payments/new?invoiceId=${id}`} className="btn-secondary !py-1 !text-xs">＋ Link a payment</Link>}>
+        <div className="card divide-y divide-slate-100">
+          {linkedPayments.length === 0 && <p className="p-4 text-sm text-slate-500">No payments linked yet.</p>}
+          {linkedPayments.map((p) => (
+            <Link key={p.id} href={`/payments/${p.id}`} className="p-3 flex flex-wrap items-center justify-between gap-2 hover:bg-slate-50">
+              <div>
+                <div className="font-medium">{formatMoney(p.amount, p.currency)} {p.account ? `· ${p.account}` : ""}</div>
+                <div className="text-xs text-slate-500">{formatDate(p.date)} {p.method ? `· ${p.method}` : ""}</div>
+              </div>
+              {p.proofDocumentId && <span className="text-xs text-slate-400">📎 receipt attached</span>}
+            </Link>
+          ))}
+        </div>
       </Section>
     </div>
   );

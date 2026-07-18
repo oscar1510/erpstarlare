@@ -10,18 +10,27 @@ import { VatFields } from "@/components/VatFields";
 import { CURRENCIES, EXPENSE_CATEGORIES, EXPENSE_STATUSES, PAYMENT_ACCOUNTS, PAYMENT_METHODS, labelize } from "@/lib/constants";
 import { createExpense } from "../actions";
 
-export default async function NewExpensePage() {
+export default async function NewExpensePage({ searchParams }: { searchParams: Promise<{ personId?: string }> }) {
+  const { personId } = await searchParams;
   const [people, clients] = await Promise.all([
     db.person.findMany({ orderBy: { firstName: "asc" } }),
     db.client.findMany({ orderBy: { name: "asc" } }),
   ]);
+  const linkedPerson = personId ? people.find((p) => p.id === personId) : null;
 
   return (
     <div className="max-w-3xl space-y-6">
       <PageHeader title="Add expense" description="Record a cost manually. You can also attach a receipt to scan." />
 
       <form action={createExpense} className="card p-5 space-y-4">
-        <ActorSelect people={people} namePrefix="actor" defaultType="OSCAR" defaultLabel="Oscar" label="Who made this expense?" />
+        <ActorSelect
+          people={people}
+          namePrefix="actor"
+          defaultType={linkedPerson ? "EMPLOYEE" : "OSCAR"}
+          defaultLabel={linkedPerson ? `${linkedPerson.firstName} ${linkedPerson.lastName}` : "Oscar"}
+          defaultPersonId={linkedPerson?.id}
+          label="Who made this expense?"
+        />
 
         <FormGrid>
           <Field label="Vendor / merchant">

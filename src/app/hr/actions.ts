@@ -392,6 +392,16 @@ export async function deletePerson(id: string) {
   redirect("/hr?saved=Person+deleted");
 }
 
+export async function deleteReimbursement(personId: string, id: string) {
+  const r = await db.reimbursement.findUnique({ where: { id } });
+  if (r?.ledgerEntryId) await db.ledgerEntry.delete({ where: { id: r.ledgerEntryId } }).catch(() => {});
+  if (r?.documentId) await db.document.delete({ where: { id: r.documentId } }).catch(() => {});
+  await db.reimbursement.delete({ where: { id } }).catch(() => {});
+  revalidatePath(`/hr/${personId}`);
+  revalidatePath("/");
+  redirect(`/hr/${personId}?saved=Expense+removed`);
+}
+
 export async function updateReimbursementStatus(id: string, status: string) {
   const before = await db.reimbursement.findUniqueOrThrow({ where: { id } });
   const person = await db.person.findUnique({ where: { id: before.personId } });

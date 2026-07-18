@@ -24,9 +24,10 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Pro
         title="Payments & Reconciliation"
         description="Payments received and made, and whether they're correctly matched to invoices, bank transactions, or expenses."
         actions={
-          <Link href="/payments/new" className="btn-primary">
-            + Add payment
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link href="/payments/scan" className="btn-secondary">🧾 Scan receipt</Link>
+            <Link href="/payments/new" className="btn-primary">+ Add payment</Link>
+          </div>
         }
       />
       <div className="flex gap-2 mb-4">
@@ -64,6 +65,12 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Pro
                 />
                 <SubmitButton className="btn-ghost !py-1 !text-xs">Save</SubmitButton>
               </form>
+            ),
+          },
+          {
+            header: "",
+            render: (p) => (
+              <Link href={`/payments/${p.id}`} className="btn-secondary !py-1 !text-xs whitespace-nowrap">Edit</Link>
             ),
           },
         ]}
