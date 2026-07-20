@@ -14,10 +14,22 @@ export default async function GeneratedDocumentPage({ params }: { params: Promis
   const logo = await resolveLogo();
   const html = renderQuoteDocBody(quotation, logo?.dataUri);
 
+  // Print CSS: `@page { margin: 0 }` removes the browser's auto header/footer
+  // (the page URL and the date/time). The zoom shrinks the document to fit a
+  // single A4 page automatically — no more manually setting the print scale.
+  const printCss = `
+    @page { size: A4; margin: 0; }
+    @media print {
+      html, body { background: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .doc-body > div { zoom: 0.8; padding: 30px 34px !important; margin: 0 auto !important; }
+    }
+  `;
+
   return (
     <div className="-m-6 min-h-screen bg-white">
+      <style dangerouslySetInnerHTML={{ __html: printCss }} />
       <DocumentActionBar wordHref={`/billing/documents/${id}/word`} />
-      <div dangerouslySetInnerHTML={{ __html: html }} />
+      <div className="doc-body" dangerouslySetInnerHTML={{ __html: html }} />
     </div>
   );
 }
