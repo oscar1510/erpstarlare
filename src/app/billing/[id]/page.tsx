@@ -29,7 +29,8 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
     const raw = fd.get("paidDate");
     const paidDate = typeof raw === "string" && raw ? new Date(raw) : null;
     const account = (fd.get("account") as string) || null;
-    await updateInvoiceStatus(id, fd.get("status") as string, paidDate, account);
+    const nonCash = fd.get("nonCash") === "on";
+    await updateInvoiceStatus(id, fd.get("status") as string, paidDate, account, nonCash);
   }
 
   async function emailInvoice() {
@@ -121,13 +122,6 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
           <Field label="Description">
             <TextInput name="description" defaultValue={invoice.description ?? ""} />
           </Field>
-          <label className="flex items-start gap-2 text-sm">
-            <input type="checkbox" name="nonCash" defaultChecked={invoice.nonCash} className="mt-0.5" />
-            <span>
-              <span className="font-medium">Non-cash (barter / service exchange)</span>
-              <span className="block text-xs text-slate-500">Counts in revenue, but produces no cash-in payment. Use it for part-payment in services / trade.</span>
-            </span>
-          </label>
           <Field label="Notes">
             <TextArea name="notes" defaultValue={invoice.notes ?? ""} rows={2} />
           </Field>
@@ -155,12 +149,19 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
             <input type="date" name="paidDate" defaultValue={formatDateInput(invoice.paidDate)} className="form-input w-44" />
           </div>
           <div>
-            <div className="mb-1 text-xs text-slate-500">Received into (account)</div>
-            <Select name="account" options={PAYMENT_ACCOUNTS.map((a) => ({ value: a, label: a }))} defaultValue={invoice.account ?? ""} placeholder="Select account..." className="w-48" />
+            <div className="mb-1 text-xs text-slate-500">Received into (account) — optional</div>
+            <Select name="account" options={PAYMENT_ACCOUNTS.map((a) => ({ value: a, label: a }))} defaultValue={invoice.account ?? ""} placeholder="None / not applicable" className="w-48" />
           </div>
           <SubmitButton className="btn-secondary">Update status</SubmitButton>
+          <label className="flex items-start gap-2 text-sm w-full mt-1">
+            <input type="checkbox" name="nonCash" defaultChecked={invoice.nonCash} className="mt-0.5" />
+            <span>
+              <span className="font-medium">Non-cash (barter / service exchange)</span>
+              <span className="block text-xs text-slate-500">Counts as revenue but creates no cash-in payment — no account needed. Mark it Paid with this ticked.</span>
+            </span>
+          </label>
         </form>
-        <p className="mt-2 text-xs text-slate-500">Revenue counts in the month of the payment date — so an invoice paid last year won&apos;t show up in this month&apos;s revenue.</p>
+        <p className="mt-2 text-xs text-slate-500">Revenue counts in the month of the payment date — so an invoice paid last year won&apos;t show up in this month&apos;s revenue. The account is optional.</p>
       </Section>
 
       <Section title="Payments" actions={<Link href={`/payments/new?invoiceId=${id}`} className="btn-secondary !py-1 !text-xs">＋ Link a payment</Link>}>

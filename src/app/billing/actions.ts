@@ -77,13 +77,19 @@ export async function createInvoice(formData: FormData) {
   redirect(`/billing/${invoice.id}`);
 }
 
-export async function updateInvoiceStatus(id: string, status: string, paidDateInput?: Date | null, account?: string | null) {
+export async function updateInvoiceStatus(
+  id: string,
+  status: string,
+  paidDateInput?: Date | null,
+  account?: string | null,
+  nonCash?: boolean,
+) {
   const before = await db.invoice.findUniqueOrThrow({ where: { id } });
 
   // When an invoice becomes PAID, record when it was actually paid so revenue
   // is attributed to that month — not the (possibly much later) issue date. Use
   // the date the user supplied, else keep any existing paid date, else today.
-  const data: { status: string; paidDate?: Date | null; account?: string | null } = { status };
+  const data: { status: string; paidDate?: Date | null; account?: string | null; nonCash?: boolean } = { status };
   if (status === "PAID") {
     // Default the paid date to the invoice's own date — NOT "today" — so an
     // invoice dated in January that you simply mark paid counts in January, not
@@ -91,7 +97,13 @@ export async function updateInvoiceStatus(id: string, status: string, paidDateIn
     data.paidDate = paidDateInput ?? before.paidDate ?? before.invoiceDate;
   }
   if (account) data.account = account;
+  if (nonCash !== undefined) data.nonCash = nonCash;
   const invoice = await db.invoice.update({ where: { id }, data });
+
+  // A non-cash (barter) invoice must never carry a cash payment.
+  if (invoice.nonCash) {
+    await db.payment.deleteMany({ where: { invoiceId: id } });
+  }
 
   // Marking an invoice paid must also record the money as received, otherwise
   // "Cash in" (from Payment records) lags "Revenue" (from invoices). Create a
@@ -200,7 +212,6 @@ export async function updateInvoiceDetails(id: string, formData: FormData) {
       currency,
       account,
       paymentMethod,
-      nonCash: formData.get("nonCash") === "on",
       notes: str(formData, "notes"),
     },
   });
@@ -212,7 +223,7 @@ export async function updateInvoiceDetails(id: string, formData: FormData) {
       data: { amount: total, currency, account, date: paidDate ?? invoiceDate },
     }).catch(() => {});
   }
-  if (formData.get("nonCash") === "on") {
+  if (before.nonCash) {
     // Non-cash (barter) invoice: it must not produce any cash-in, so remove any
     // payment that had been auto-created for it.
     await db.payment.deleteMany({ where: { invoiceId: id } });
