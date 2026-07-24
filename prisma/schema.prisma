@@ -200,6 +200,7 @@ model Invoice {
 
   paymentMethod     String? // Stripe, Bank transfer, Cash, Other
   account           String? // account the payment was received into
+  nonCash           Boolean   @default(false) // barter / service exchange: counts as revenue but produces no cash-in payment
   status            String    @default("DRAFT") // DRAFT, SENT, PAID, PARTIALLY_PAID, OVERDUE, CANCELLED
 
   receiptDocumentId String?

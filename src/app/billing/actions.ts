@@ -95,8 +95,9 @@ export async function updateInvoiceStatus(id: string, status: string, paidDateIn
 
   // Marking an invoice paid must also record the money as received, otherwise
   // "Cash in" (from Payment records) lags "Revenue" (from invoices). Create a
-  // matching incoming payment once, if none exists yet for this invoice.
-  if (status === "PAID") {
+  // matching incoming payment once, if none exists yet — UNLESS it's a non-cash
+  // (barter / service-exchange) invoice, which is revenue but no cash movement.
+  if (status === "PAID" && !invoice.nonCash) {
     const existingPayment = await db.payment.findFirst({ where: { invoiceId: id } });
     if (!existingPayment) {
       await db.payment.create({
@@ -199,6 +200,7 @@ export async function updateInvoiceDetails(id: string, formData: FormData) {
       currency,
       account,
       paymentMethod,
+      nonCash: formData.get("nonCash") === "on",
       notes: str(formData, "notes"),
     },
   });
@@ -210,10 +212,16 @@ export async function updateInvoiceDetails(id: string, formData: FormData) {
       data: { amount: total, currency, account, date: paidDate ?? invoiceDate },
     }).catch(() => {});
   }
-  await db.payment.updateMany({
-    where: { invoiceId: id },
-    data: { amount: total, currency, account, date: paidDate ?? invoiceDate },
-  });
+  if (formData.get("nonCash") === "on") {
+    // Non-cash (barter) invoice: it must not produce any cash-in, so remove any
+    // payment that had been auto-created for it.
+    await db.payment.deleteMany({ where: { invoiceId: id } });
+  } else {
+    await db.payment.updateMany({
+      where: { invoiceId: id },
+      data: { amount: total, currency, account, date: paidDate ?? invoiceDate },
+    });
+  }
   // Sync the branded document (number/date/price) — best effort (number unique).
   try {
     const quote = await db.quotation.findFirst({ where: { invoiceId: id } });
@@ -264,7 +272,8 @@ export async function alignPaidDatesToInvoiceDates() {
     }
     // 2) Backfill a missing incoming payment so "Cash in" matches "Revenue"
     //    (invoices marked paid before payments were auto-created lack one).
-    const existingPayment = await db.payment.findFirst({ where: { invoiceId: inv.id } });
+    //    Non-cash (barter) invoices intentionally have no payment.
+    const existingPayment = inv.nonCash ? true : await db.payment.findFirst({ where: { invoiceId: inv.id } });
     if (!existingPayment) {
       await db.payment.create({
         data: {

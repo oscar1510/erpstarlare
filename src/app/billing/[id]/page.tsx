@@ -121,6 +121,13 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
           <Field label="Description">
             <TextInput name="description" defaultValue={invoice.description ?? ""} />
           </Field>
+          <label className="flex items-start gap-2 text-sm">
+            <input type="checkbox" name="nonCash" defaultChecked={invoice.nonCash} className="mt-0.5" />
+            <span>
+              <span className="font-medium">Non-cash (barter / service exchange)</span>
+              <span className="block text-xs text-slate-500">Counts in revenue, but produces no cash-in payment. Use it for part-payment in services / trade.</span>
+            </span>
+          </label>
           <Field label="Notes">
             <TextArea name="notes" defaultValue={invoice.notes ?? ""} rows={2} />
           </Field>
