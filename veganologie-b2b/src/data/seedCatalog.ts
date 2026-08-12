@@ -1,6 +1,8 @@
 // AUTO-GENERATED from Final_costing.xlsx + Full_Price_Pricelist_mm.xlsx.
 // Pre-loaded so products are available immediately — no upload needed.
-// Production 'cost' is INTERNAL only and never shown on customer quotations.
+// Costs are matched across the two files (family + size aware; China preferred
+// when a product has multiple manufacturers). Production 'cost' is INTERNAL
+// only and never shown on customer quotations.
 import type { Product } from "../types";
 
 export const SEED_CATALOG: Product[] = [
@@ -9,15 +11,15 @@ export const SEED_CATALOG: Product[] = [
     "sku": "bag-charm",
     "name": "Bag Charm",
     "retail": 85,
-    "cost": 0,
-    "costMatched": false
+    "cost": 167.04,
+    "costMatched": true
   },
   {
     "id": "maze-crossbody-veganologie-with-gold-hardware-bamboo",
     "sku": "maze-crossbody-veganologie-with-gold-hardware-bamboo",
     "name": "Maze Crossbody — Veganologie with Gold Hardware (Bamboo)",
     "retail": 585,
-    "cost": 121.4,
+    "cost": 119.54,
     "costMatched": true
   },
   {
@@ -25,7 +27,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "maze-crossbody-veganologie-with-silver-hardware-bamboo",
     "name": "Maze Crossbody — Veganologie with Silver Hardware (Bamboo)",
     "retail": 585,
-    "cost": 121.4,
+    "cost": 119.54,
     "costMatched": true
   },
   {
@@ -33,7 +35,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "maze-crossbody-onyx-with-gold-hardware-bamboo",
     "name": "Maze Crossbody — Onyx with Gold Hardware (Bamboo)",
     "retail": 585,
-    "cost": 121.4,
+    "cost": 119.54,
     "costMatched": true
   },
   {
@@ -41,7 +43,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "maze-crossbody-onyx-with-silver-hardware-bamboo",
     "name": "Maze Crossbody — Onyx with Silver Hardware (Bamboo)",
     "retail": 585,
-    "cost": 121.4,
+    "cost": 119.54,
     "costMatched": true
   },
   {
@@ -49,7 +51,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "maze-crossbody-cinnamon-bamboo",
     "name": "Maze Crossbody — Cinnamon (Bamboo)",
     "retail": 585,
-    "cost": 121.4,
+    "cost": 119.54,
     "costMatched": true
   },
   {
@@ -57,7 +59,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "maze-crossbody-oatmilk-bamboo",
     "name": "Maze Crossbody — Oatmilk (Bamboo)",
     "retail": 585,
-    "cost": 121.4,
+    "cost": 119.54,
     "costMatched": true
   },
   {
@@ -65,7 +67,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "maze-crossbody-chocolate-bamboo",
     "name": "Maze Crossbody — Chocolate (Bamboo)",
     "retail": 585,
-    "cost": 121.4,
+    "cost": 119.54,
     "costMatched": true
   },
   {
@@ -73,7 +75,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "maze-crossbody-cashew-pu",
     "name": "Maze Crossbody — Cashew (PU)",
     "retail": 585,
-    "cost": 121.4,
+    "cost": 119.54,
     "costMatched": true
   },
   {
@@ -81,7 +83,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "maze-crossbody-blueberry-pu",
     "name": "Maze Crossbody — Blueberry (PU)",
     "retail": 585,
-    "cost": 121.4,
+    "cost": 119.54,
     "costMatched": true
   },
   {
@@ -89,7 +91,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "maze-crossbody-blush-pu",
     "name": "Maze Crossbody — Blush (PU)",
     "retail": 585,
-    "cost": 121.4,
+    "cost": 119.54,
     "costMatched": true
   },
   {
@@ -97,7 +99,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "maze-crossbody-pearl-pu",
     "name": "Maze Crossbody — Pearl (PU)",
     "retail": 585,
-    "cost": 121.4,
+    "cost": 119.54,
     "costMatched": true
   },
   {
@@ -185,7 +187,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "bucket-bag-veganologie-bamboo",
     "name": "Bucket Bag — Veganologie (Bamboo)",
     "retail": 719,
-    "cost": 131.48,
+    "cost": 117.67,
     "costMatched": true
   },
   {
@@ -193,7 +195,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "bucket-bag-onyx-bamboo",
     "name": "Bucket Bag — Onyx (Bamboo)",
     "retail": 719,
-    "cost": 131.48,
+    "cost": 117.67,
     "costMatched": true
   },
   {
@@ -201,7 +203,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "bucket-bag-chocolate-bamboo",
     "name": "Bucket Bag — Chocolate (Bamboo)",
     "retail": 719,
-    "cost": 131.48,
+    "cost": 117.67,
     "costMatched": true
   },
   {
@@ -209,7 +211,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "bucket-bag-vanilla-bamboo",
     "name": "Bucket Bag — Vanilla (Bamboo)",
     "retail": 719,
-    "cost": 131.48,
+    "cost": 117.67,
     "costMatched": true
   },
   {
@@ -233,7 +235,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "pebble-shoulder-bag-veganologie-bamboo",
     "name": "Pebble Shoulder Bag — Veganologie (Bamboo)",
     "retail": 630,
-    "cost": 127.06,
+    "cost": 101.15,
     "costMatched": true
   },
   {
@@ -241,7 +243,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "pebble-shoulder-bag-onyx-bamboo",
     "name": "Pebble Shoulder Bag — Onyx (Bamboo)",
     "retail": 630,
-    "cost": 127.06,
+    "cost": 101.15,
     "costMatched": true
   },
   {
@@ -249,7 +251,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "pebble-shoulder-bag-chocolate-bamboo",
     "name": "Pebble Shoulder Bag — Chocolate (Bamboo)",
     "retail": 630,
-    "cost": 127.06,
+    "cost": 101.15,
     "costMatched": true
   },
   {
@@ -257,7 +259,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "pebble-shoulder-bag-berry-bamboo",
     "name": "Pebble Shoulder Bag — Berry (Bamboo)",
     "retail": 630,
-    "cost": 110.77,
+    "cost": 101.15,
     "costMatched": true
   },
   {
@@ -265,7 +267,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "pebble-shoulder-bag-pearl-pu",
     "name": "Pebble Shoulder Bag — Pearl (PU)",
     "retail": 630,
-    "cost": 114.98,
+    "cost": 101.15,
     "costMatched": true
   },
   {
@@ -273,7 +275,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "pebble-shoulder-bag-alphonso-bamboo",
     "name": "Pebble Shoulder Bag — Alphonso (Bamboo)",
     "retail": 630,
-    "cost": 0,
+    "cost": 101.15,
     "costMatched": true
   },
   {
@@ -281,7 +283,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "mini-maze-veganologie-bamboo",
     "name": "Mini Maze — Veganologie (Bamboo)",
     "retail": 329,
-    "cost": 62.12,
+    "cost": 117.43,
     "costMatched": true
   },
   {
@@ -289,7 +291,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "mini-maze-onyx-bamboo",
     "name": "Mini Maze — Onyx (Bamboo)",
     "retail": 329,
-    "cost": 62.12,
+    "cost": 117.43,
     "costMatched": true
   },
   {
@@ -337,7 +339,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "maze-tote-bag-veganologie-bamboo",
     "name": "Maze Tote Bag — Veganologie (Bamboo)",
     "retail": 995,
-    "cost": 169.05,
+    "cost": 168.09,
     "costMatched": true
   },
   {
@@ -345,7 +347,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "maze-tote-bag-onyx-bamboo",
     "name": "Maze Tote Bag — Onyx (Bamboo)",
     "retail": 995,
-    "cost": 169.05,
+    "cost": 168.09,
     "costMatched": true
   },
   {
@@ -353,7 +355,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "maze-tote-bag-blueberry-bamboo",
     "name": "Maze Tote Bag — Blueberry (Bamboo)",
     "retail": 995,
-    "cost": 169.05,
+    "cost": 168.09,
     "costMatched": true
   },
   {
@@ -361,7 +363,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "maze-tote-bag-chocolate-bamboo",
     "name": "Maze Tote Bag — Chocolate (Bamboo)",
     "retail": 995,
-    "cost": 169.2,
+    "cost": 168.09,
     "costMatched": true
   },
   {
@@ -369,7 +371,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "maze-tote-bag-veganologie-pu",
     "name": "Maze Tote Bag — Veganologie (PU)",
     "retail": 995,
-    "cost": 169.05,
+    "cost": 168.09,
     "costMatched": true
   },
   {
@@ -377,7 +379,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "maze-tote-bag-onyx-pu",
     "name": "Maze Tote Bag — Onyx (PU)",
     "retail": 995,
-    "cost": 169.05,
+    "cost": 168.09,
     "costMatched": true
   },
   {
@@ -385,7 +387,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "maze-tote-bag-blueberry-pu",
     "name": "Maze Tote Bag — Blueberry (PU)",
     "retail": 995,
-    "cost": 169.05,
+    "cost": 168.09,
     "costMatched": true
   },
   {
@@ -393,7 +395,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "maze-tote-bag-cinnamon-pu",
     "name": "Maze Tote Bag — Cinnamon (PU)",
     "retail": 995,
-    "cost": 229.33,
+    "cost": 168.09,
     "costMatched": true
   },
   {
@@ -401,7 +403,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "maze-tote-bag-blush-pu",
     "name": "Maze Tote Bag — Blush (PU)",
     "retail": 995,
-    "cost": 220.92,
+    "cost": 168.09,
     "costMatched": true
   },
   {
@@ -409,7 +411,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "maze-tote-bag-pearl-pu",
     "name": "Maze Tote Bag — Pearl (PU)",
     "retail": 995,
-    "cost": 220.92,
+    "cost": 168.09,
     "costMatched": true
   },
   {
@@ -497,7 +499,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "arabesque-tote-dusty-rose-bamboo",
     "name": "Arabesque Tote — Dusty Rose (Bamboo)",
     "retail": 620,
-    "cost": 126.35,
+    "cost": 130.17,
     "costMatched": true
   },
   {
@@ -505,7 +507,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "arabesque-tote-dunes-bamboo",
     "name": "Arabesque Tote — Dunes (Bamboo)",
     "retail": 620,
-    "cost": 126.35,
+    "cost": 130.17,
     "costMatched": true
   },
   {
@@ -545,71 +547,71 @@ export const SEED_CATALOG: Product[] = [
     "sku": "kora-travel-pouches-veganologie-small-bamboo",
     "name": "Kora Travel Pouches — Veganologie Small (Bamboo)",
     "retail": 239,
-    "cost": 0,
-    "costMatched": false
+    "cost": 36.39,
+    "costMatched": true
   },
   {
     "id": "kora-travel-pouches-veganologie-medium-bamboo",
     "sku": "kora-travel-pouches-veganologie-medium-bamboo",
     "name": "Kora Travel Pouches — Veganologie Medium (Bamboo)",
     "retail": 269,
-    "cost": 0,
-    "costMatched": false
+    "cost": 36.39,
+    "costMatched": true
   },
   {
     "id": "kora-travel-pouches-veganologie-large-bamboo",
     "sku": "kora-travel-pouches-veganologie-large-bamboo",
     "name": "Kora Travel Pouches — Veganologie Large (Bamboo)",
     "retail": 304,
-    "cost": 0,
-    "costMatched": false
+    "cost": 36.39,
+    "costMatched": true
   },
   {
     "id": "kora-travel-pouches-veganologie-bundle-bamboo",
     "sku": "kora-travel-pouches-veganologie-bundle-bamboo",
     "name": "Kora Travel Pouches — Veganologie Bundle (Bamboo)",
     "retail": 530,
-    "cost": 0,
-    "costMatched": false
+    "cost": 36.39,
+    "costMatched": true
   },
   {
     "id": "kora-travel-pouches-onyx-small-bamboo",
     "sku": "kora-travel-pouches-onyx-small-bamboo",
     "name": "Kora Travel Pouches — Onyx Small (Bamboo)",
     "retail": 239,
-    "cost": 0,
-    "costMatched": false
+    "cost": 36.39,
+    "costMatched": true
   },
   {
     "id": "kora-travel-pouches-onyx-medium-bamboo",
     "sku": "kora-travel-pouches-onyx-medium-bamboo",
     "name": "Kora Travel Pouches — Onyx Medium (Bamboo)",
     "retail": 269,
-    "cost": 0,
-    "costMatched": false
+    "cost": 36.39,
+    "costMatched": true
   },
   {
     "id": "kora-travel-pouches-onyx-large-bamboo",
     "sku": "kora-travel-pouches-onyx-large-bamboo",
     "name": "Kora Travel Pouches — Onyx Large (Bamboo)",
     "retail": 304,
-    "cost": 0,
-    "costMatched": false
+    "cost": 36.39,
+    "costMatched": true
   },
   {
     "id": "kora-travel-pouches-onyx-bundle-bamboo",
     "sku": "kora-travel-pouches-onyx-bundle-bamboo",
     "name": "Kora Travel Pouches — Onyx Bundle (Bamboo)",
     "retail": 530,
-    "cost": 0,
-    "costMatched": false
+    "cost": 36.39,
+    "costMatched": true
   },
   {
     "id": "jupiter-laptop-bag-13-in-veganologie-bamboo",
     "sku": "jupiter-laptop-bag-13-in-veganologie-bamboo",
     "name": "Jupiter Laptop Bag 13 Inch — Veganologie (Bamboo)",
     "retail": 719,
-    "cost": 146.31,
+    "cost": 117.87,
     "costMatched": true
   },
   {
@@ -617,7 +619,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "jupiter-laptop-bag-13-in-veganologie-pu",
     "name": "Jupiter Laptop Bag 13 Inch — Veganologie (PU)",
     "retail": 719,
-    "cost": 146.31,
+    "cost": 117.87,
     "costMatched": true
   },
   {
@@ -625,7 +627,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "jupiter-laptop-bag-13-in-onyx-bamboo",
     "name": "Jupiter Laptop Bag 13 Inch — Onyx (Bamboo)",
     "retail": 719,
-    "cost": 146.31,
+    "cost": 117.87,
     "costMatched": true
   },
   {
@@ -633,7 +635,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "jupiter-laptop-bag-13-in-onyx-pu",
     "name": "Jupiter Laptop Bag 13 Inch — Onyx (PU)",
     "retail": 719,
-    "cost": 146.31,
+    "cost": 117.87,
     "costMatched": true
   },
   {
@@ -641,7 +643,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "jupiter-laptop-bag-13-in-blueberry-bamboo",
     "name": "Jupiter Laptop Bag 13 Inch — Blueberry (Bamboo)",
     "retail": 719,
-    "cost": 146.31,
+    "cost": 117.87,
     "costMatched": true
   },
   {
@@ -649,7 +651,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "jupiter-laptop-bag-13-in-blueberry-pu",
     "name": "Jupiter Laptop Bag 13 Inch — Blueberry (PU)",
     "retail": 719,
-    "cost": 146.31,
+    "cost": 117.87,
     "costMatched": true
   },
   {
@@ -657,7 +659,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "jupiter-laptop-bag-13-in-blush-pu",
     "name": "Jupiter Laptop Bag 13 Inch — Blush (PU)",
     "retail": 719,
-    "cost": 146.31,
+    "cost": 117.87,
     "costMatched": true
   },
   {
@@ -665,7 +667,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "jupiter-laptop-bag-13-in-chocolate-bamboo",
     "name": "Jupiter Laptop Bag 13 Inch — Chocolate (Bamboo)",
     "retail": 719,
-    "cost": 146.31,
+    "cost": 117.87,
     "costMatched": true
   },
   {
@@ -673,7 +675,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "jupiter-laptop-bag-16-in-veganologie-bamboo",
     "name": "Jupiter Laptop Bag 16 Inch — Veganologie (Bamboo)",
     "retail": 765,
-    "cost": 143.91,
+    "cost": 127.98,
     "costMatched": true
   },
   {
@@ -681,7 +683,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "jupiter-laptop-bag-16-in-veganologie-pu",
     "name": "Jupiter Laptop Bag 16 Inch — Veganologie (PU)",
     "retail": 765,
-    "cost": 143.91,
+    "cost": 127.98,
     "costMatched": true
   },
   {
@@ -689,7 +691,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "jupiter-laptop-bag-16-in-onyx-bamboo",
     "name": "Jupiter Laptop Bag 16 Inch — Onyx (Bamboo)",
     "retail": 765,
-    "cost": 143.91,
+    "cost": 127.98,
     "costMatched": true
   },
   {
@@ -697,7 +699,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "jupiter-laptop-bag-16-in-onyx-pu",
     "name": "Jupiter Laptop Bag 16 Inch — Onyx (PU)",
     "retail": 765,
-    "cost": 143.91,
+    "cost": 127.98,
     "costMatched": true
   },
   {
@@ -705,7 +707,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "jupiter-laptop-bag-16-in-blueberry-bamboo",
     "name": "Jupiter Laptop Bag 16 Inch — Blueberry (Bamboo)",
     "retail": 765,
-    "cost": 143.91,
+    "cost": 127.98,
     "costMatched": true
   },
   {
@@ -713,7 +715,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "jupiter-laptop-bag-16-in-blueberry-pu",
     "name": "Jupiter Laptop Bag 16 Inch — Blueberry (PU)",
     "retail": 765,
-    "cost": 143.91,
+    "cost": 127.98,
     "costMatched": true
   },
   {
@@ -721,7 +723,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "jupiter-laptop-bag-16-in-blush-pu",
     "name": "Jupiter Laptop Bag 16 Inch — Blush (PU)",
     "retail": 765,
-    "cost": 143.91,
+    "cost": 127.98,
     "costMatched": true
   },
   {
@@ -729,7 +731,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "jupiter-laptop-bag-16-in-chocolate-bamboo",
     "name": "Jupiter Laptop Bag 16 Inch — Chocolate (Bamboo)",
     "retail": 765,
-    "cost": 143.91,
+    "cost": 127.98,
     "costMatched": true
   },
   {
@@ -737,7 +739,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "saturn-laptop-bag-13-in-veganologie-bamboo",
     "name": "Saturn Laptop Bag 13 Inch — Veganologie (Bamboo)",
     "retail": 719,
-    "cost": 143.91,
+    "cost": 137.49,
     "costMatched": true
   },
   {
@@ -745,7 +747,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "saturn-laptop-bag-13-in-onyx-bamboo",
     "name": "Saturn Laptop Bag 13 Inch — Onyx (Bamboo)",
     "retail": 719,
-    "cost": 143.91,
+    "cost": 137.49,
     "costMatched": true
   },
   {
@@ -753,7 +755,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "saturn-laptop-bag-13-in-chocolate-bamboo",
     "name": "Saturn Laptop Bag 13 Inch — Chocolate (Bamboo)",
     "retail": 719,
-    "cost": 143.91,
+    "cost": 137.49,
     "costMatched": true
   },
   {
@@ -841,7 +843,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "eden-tech-sleeve-13-in-veganologie-apple",
     "name": "Eden Tech Sleeve 13 Inch — Veganologie (Apple)",
     "retail": 496,
-    "cost": 77.98,
+    "cost": 86.71,
     "costMatched": true
   },
   {
@@ -849,7 +851,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "eden-tech-sleeve-13-in-veganologie-bamboo",
     "name": "Eden Tech Sleeve 13 Inch — Veganologie (Bamboo)",
     "retail": 459,
-    "cost": 77.98,
+    "cost": 86.71,
     "costMatched": true
   },
   {
@@ -857,7 +859,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "eden-tech-sleeve-13-in-onyx-apple",
     "name": "Eden Tech Sleeve 13 Inch — Onyx (Apple)",
     "retail": 496,
-    "cost": 77.98,
+    "cost": 86.71,
     "costMatched": true
   },
   {
@@ -865,7 +867,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "eden-tech-sleeve-13-in-onyx-bamboo",
     "name": "Eden Tech Sleeve 13 Inch — Onyx (Bamboo)",
     "retail": 459,
-    "cost": 77.98,
+    "cost": 86.71,
     "costMatched": true
   },
   {
@@ -873,7 +875,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "eden-tech-sleeve-13-in-blueberry-bamboo",
     "name": "Eden Tech Sleeve 13 Inch — Blueberry (Bamboo)",
     "retail": 459,
-    "cost": 77.98,
+    "cost": 86.71,
     "costMatched": true
   },
   {
@@ -881,7 +883,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "eden-tech-sleeve-13-in-indigo-apple",
     "name": "Eden Tech Sleeve 13 Inch — Indigo (Apple)",
     "retail": 496,
-    "cost": 77.98,
+    "cost": 86.71,
     "costMatched": true
   },
   {
@@ -889,7 +891,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "eden-tech-sleeve-13-in-almond-apple",
     "name": "Eden Tech Sleeve 13 Inch — Almond (Apple)",
     "retail": 496,
-    "cost": 77.98,
+    "cost": 86.71,
     "costMatched": true
   },
   {
@@ -1025,7 +1027,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "luggage-tag-veganologie-pu",
     "name": "Luggage Tag — Veganologie (PU)",
     "retail": 59,
-    "cost": 19.05,
+    "cost": 19.97,
     "costMatched": true
   },
   {
@@ -1033,7 +1035,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "luggage-tag-onyx-pu",
     "name": "Luggage Tag — Onyx (PU)",
     "retail": 59,
-    "cost": 19.05,
+    "cost": 19.97,
     "costMatched": true
   },
   {
@@ -1041,7 +1043,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "luggage-tag-blueberry-pu",
     "name": "Luggage Tag — Blueberry (PU)",
     "retail": 59,
-    "cost": 19.05,
+    "cost": 19.97,
     "costMatched": true
   },
   {
@@ -1049,7 +1051,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "luggage-tag-blush-pu",
     "name": "Luggage Tag — Blush (PU)",
     "retail": 59,
-    "cost": 19.05,
+    "cost": 19.97,
     "costMatched": true
   },
   {
@@ -1089,48 +1091,48 @@ export const SEED_CATALOG: Product[] = [
     "sku": "cider-cardholder-veganologie-apple",
     "name": "Cider Cardholder — Veganologie (Apple)",
     "retail": 285,
-    "cost": 0,
-    "costMatched": false
+    "cost": 54.42,
+    "costMatched": true
   },
   {
     "id": "cider-cardholder-onyx-apple",
     "sku": "cider-cardholder-onyx-apple",
     "name": "Cider Cardholder — Onyx (Apple)",
     "retail": 285,
-    "cost": 0,
-    "costMatched": false
+    "cost": 54.42,
+    "costMatched": true
   },
   {
     "id": "cider-cardholder-sand-apple",
     "sku": "cider-cardholder-sand-apple",
     "name": "Cider Cardholder — Sand (Apple)",
     "retail": 285,
-    "cost": 0,
-    "costMatched": false
+    "cost": 54.42,
+    "costMatched": true
   },
   {
     "id": "cider-cardholder-syrah-apple",
     "sku": "cider-cardholder-syrah-apple",
     "name": "Cider Cardholder — Syrah (Apple)",
     "retail": 285,
-    "cost": 0,
-    "costMatched": false
+    "cost": 54.42,
+    "costMatched": true
   },
   {
     "id": "cider-cardholder-ginger-apple",
     "sku": "cider-cardholder-ginger-apple",
     "name": "Cider Cardholder — Ginger (Apple)",
     "retail": 285,
-    "cost": 0,
-    "costMatched": false
+    "cost": 54.42,
+    "costMatched": true
   },
   {
     "id": "cider-cardholder-pepper-apple",
     "sku": "cider-cardholder-pepper-apple",
     "name": "Cider Cardholder — Pepper (Apple)",
     "retail": 285,
-    "cost": 0,
-    "costMatched": false
+    "cost": 54.42,
+    "costMatched": true
   },
   {
     "id": "mix-n-match-straps-all-colours",
@@ -1145,7 +1147,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "heritage-tassel-one-colour-bamboo",
     "name": "Heritage Tassel — One Colour (Bamboo)",
     "retail": 95,
-    "cost": 16.13,
+    "cost": 134,
     "costMatched": true
   },
   {
@@ -1169,7 +1171,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "mars-man-bag-chocolate-pu",
     "name": "Mars Man Bag — Chocolate (PU)",
     "retail": 519,
-    "cost": 94.98,
+    "cost": 89.92,
     "costMatched": true
   },
   {
@@ -1217,32 +1219,32 @@ export const SEED_CATALOG: Product[] = [
     "sku": "watan-wild-charms-leo-bamboo",
     "name": "Watan Wild Charms — Leo (Bamboo)",
     "retail": 400,
-    "cost": 0,
-    "costMatched": false
+    "cost": 49.02,
+    "costMatched": true
   },
   {
     "id": "watan-wild-charms-bill-bamboo",
     "sku": "watan-wild-charms-bill-bamboo",
     "name": "Watan Wild Charms — Bill (Bamboo)",
     "retail": 400,
-    "cost": 0,
-    "costMatched": false
+    "cost": 49.02,
+    "costMatched": true
   },
   {
     "id": "watan-wild-charms-mr-sakr-bamboo",
     "sku": "watan-wild-charms-mr-sakr-bamboo",
     "name": "Watan Wild Charms — Mr Sakr (Bamboo)",
     "retail": 400,
-    "cost": 0,
-    "costMatched": false
+    "cost": 49.02,
+    "costMatched": true
   },
   {
     "id": "watan-wild-charms-mrs-sakr-bamboo",
     "sku": "watan-wild-charms-mrs-sakr-bamboo",
     "name": "Watan Wild Charms — Mrs Sakr (Bamboo)",
     "retail": 400,
-    "cost": 0,
-    "costMatched": false
+    "cost": 49.02,
+    "costMatched": true
   },
   {
     "id": "passport-cover-bamboo",

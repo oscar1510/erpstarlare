@@ -3,6 +3,7 @@ import type { Order, Product } from "./types";
 import { computeProfitability } from "./lib/calc";
 import {
   loadCatalog,
+  loadCatalogSource,
   saveCatalog,
   loadOrders,
   saveOrder,
@@ -15,6 +16,9 @@ import {
 } from "./lib/storage";
 import { Wordmark } from "./components/Logo";
 import { SEED_CATALOG } from "./data/seedCatalog";
+
+// Bump when the built-in catalog changes so returning users get the update.
+const SEED_SOURCE = "seed:2";
 import { CustomerSection } from "./components/CustomerSection";
 import { ProductsSection } from "./components/ProductsSection";
 import { OptionsSection } from "./components/OptionsSection";
@@ -49,15 +53,18 @@ export default function App() {
   const [dirty, setDirty] = useState(false);
 
   useEffect(() => {
-    // Products are pre-loaded from the Veganologie price + cost files. On the
-    // very first visit there's nothing in localStorage yet, so seed it with the
-    // built-in catalog. After that, any imported/edited catalog is respected.
+    // Products are pre-loaded from the Veganologie price + cost files. Seed the
+    // built-in catalog on first visit, and also refresh it when we've shipped a
+    // newer built-in version — but never overwrite a catalog the user imported
+    // or edited themselves (source === "import").
     const stored = loadCatalog();
-    if (stored.length) {
-      setCatalog(stored);
-    } else {
+    const source = loadCatalogSource();
+    const outdatedSeed = source.startsWith("seed:") && source !== SEED_SOURCE;
+    if (!stored.length || outdatedSeed) {
       setCatalog(SEED_CATALOG);
-      saveCatalog(SEED_CATALOG);
+      saveCatalog(SEED_CATALOG, SEED_SOURCE);
+    } else {
+      setCatalog(stored);
     }
     setOrders(loadOrders());
   }, []);
@@ -80,13 +87,13 @@ export default function App() {
 
   const handleImported = (products: Product[]) => {
     setCatalog(products);
-    saveCatalog(products);
+    saveCatalog(products, "import");
     flash(`Imported ${products.length} products`);
   };
 
   const handleCatalogSave = (products: Product[]) => {
     setCatalog(products);
-    saveCatalog(products);
+    saveCatalog(products, "import");
     // keep already-added line costs in sync with edited catalog costs
     setOrder((o) => ({
       ...o,

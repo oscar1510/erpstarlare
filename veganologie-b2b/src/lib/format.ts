@@ -10,6 +10,13 @@ export function aed(n: number): string {
   );
 }
 
+/** Format as AED with no decimals, e.g. 45380.5 -> "AED 45,381". Used in the
+ *  internal summary tiles where clean, compact figures read better. */
+export function aed0(n: number): string {
+  const v = Number.isFinite(n) ? Math.round(n) : 0;
+  return "AED " + v.toLocaleString("en-AE");
+}
+
 /** Format a plain number with thousands separators and 2 decimals. */
 export function num(n: number): string {
   const v = Number.isFinite(n) ? n : 0;

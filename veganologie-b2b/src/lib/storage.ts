@@ -2,6 +2,7 @@ import type { Order, Product, OrderOptions, QuotationDetails, Customer } from ".
 
 // Everything persists to localStorage — no server, no database.
 const K_CATALOG = "vg_catalog_v1";
+const K_CATALOG_SRC = "vg_catalog_src_v1";
 const K_ORDERS = "vg_orders_v1";
 const K_COUNTER = "vg_quote_counter_v1";
 
@@ -21,8 +22,16 @@ function write(key: string, value: unknown) {
 export function loadCatalog(): Product[] {
   return read<Product[]>(K_CATALOG, []);
 }
-export function saveCatalog(products: Product[]) {
+// `source` tracks where the catalog came from: "seed:<n>" for the built-in
+// catalog at a given version, or "import" once the user has uploaded or edited
+// their own. This lets us auto-refresh the built-in catalog when we improve it,
+// without ever clobbering a catalog the user customized.
+export function loadCatalogSource(): string {
+  return read<string>(K_CATALOG_SRC, "");
+}
+export function saveCatalog(products: Product[], source?: string) {
   write(K_CATALOG, products);
+  if (source) write(K_CATALOG_SRC, source);
 }
 
 // --- orders ---
