@@ -1,0 +1,58 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  @apply bg-cream text-forest-900 antialiased;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+}
+
+/* Hide number-input spinners for a cleaner look */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+@layer components {
+  .card {
+    @apply rounded-2xl border border-forest-100 bg-white shadow-sm;
+  }
+  .section-title {
+    @apply text-xs font-semibold uppercase tracking-[0.18em] text-forest-500;
+  }
+  .field-label {
+    @apply mb-1 block text-xs font-medium text-forest-600;
+  }
+  .input {
+    @apply w-full rounded-lg border border-forest-200 bg-white px-3 py-2 text-sm text-forest-900 outline-none transition focus:border-forest-500 focus:ring-2 focus:ring-forest-500/20 placeholder:text-forest-300;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply btn bg-forest-700 text-white hover:bg-forest-800;
+  }
+  .btn-ghost {
+    @apply btn border border-forest-200 bg-white text-forest-700 hover:bg-forest-50;
+  }
+  .btn-danger {
+    @apply btn border border-red-200 bg-white text-red-600 hover:bg-red-50;
+  }
+  .pill {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
+  }
+}
