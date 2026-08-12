@@ -14,6 +14,7 @@ import {
   defaultDetails,
 } from "./lib/storage";
 import { Wordmark } from "./components/Logo";
+import { SEED_CATALOG } from "./data/seedCatalog";
 import { CustomerSection } from "./components/CustomerSection";
 import { ProductsSection } from "./components/ProductsSection";
 import { OptionsSection } from "./components/OptionsSection";
@@ -48,7 +49,16 @@ export default function App() {
   const [dirty, setDirty] = useState(false);
 
   useEffect(() => {
-    setCatalog(loadCatalog());
+    // Products are pre-loaded from the Veganologie price + cost files. On the
+    // very first visit there's nothing in localStorage yet, so seed it with the
+    // built-in catalog. After that, any imported/edited catalog is respected.
+    const stored = loadCatalog();
+    if (stored.length) {
+      setCatalog(stored);
+    } else {
+      setCatalog(SEED_CATALOG);
+      saveCatalog(SEED_CATALOG);
+    }
     setOrders(loadOrders());
   }, []);
 
@@ -169,10 +179,15 @@ export default function App() {
       </header>
 
       <main className="mx-auto max-w-6xl px-4 py-6">
-        {catalog.length === 0 && (
+        {catalog.length === 0 ? (
           <div className="mb-6 rounded-xl border border-dashed border-forest-300 bg-white px-5 py-4 text-sm text-forest-600">
-            <strong>Start here:</strong> click <em>Import products</em> and upload your retail price
-            file and production cost file. Then build an order below.
+            No products loaded. Click <em>Import products</em> to upload a price and cost file.
+          </div>
+        ) : (
+          <div className="mb-6 rounded-xl border border-forest-100 bg-white px-5 py-3 text-sm text-forest-600">
+            <strong>{catalog.length} products loaded.</strong> In the Products section below, search
+            and click a product to add it, then enter the quantity. Prices update the profitability
+            gauge instantly. (Use <em>Import products</em> only if you want to replace the catalog.)
           </div>
         )}
 

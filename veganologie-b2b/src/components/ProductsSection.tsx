@@ -15,10 +15,10 @@ function ProductSearch({
   const [open, setOpen] = useState(false);
   const results = useMemo(() => {
     const term = q.trim().toLowerCase();
-    if (!term) return catalog.slice(0, 8);
+    if (!term) return catalog.slice(0, 50);
     return catalog
       .filter((p) => p.name.toLowerCase().includes(term) || p.sku.toLowerCase().includes(term))
-      .slice(0, 12);
+      .slice(0, 50);
   }, [q, catalog]);
 
   return (
@@ -26,7 +26,9 @@ function ProductSearch({
       <input
         className="input"
         placeholder={
-          catalog.length ? "Search products to add…" : "Import products first (top-right)"
+          catalog.length
+            ? `Search ${catalog.length} products — click to add…`
+            : "Import products first (top-right)"
         }
         value={q}
         disabled={!catalog.length}

@@ -8,17 +8,6 @@ const GREEN = "#14442e";
 const GREEN_LIGHT = "#eef4f0";
 const GREY = "#6b7c72";
 
-// Draw a small vector leaf + V mark, matching the on-screen logo.
-function drawMark(doc: jsPDF, x: number, y: number) {
-  doc.setDrawColor(GREEN);
-  doc.setLineWidth(0.7);
-  // V
-  doc.lines([[3, 9], [1, 0]], x, y, [1, 1], "S");
-  // leaf (simple rounded shape)
-  doc.setLineWidth(0.6);
-  doc.ellipse(x + 6.5, y + 4, 3.2, 4.4, "S");
-}
-
 /** Generate and download the customer-facing quotation PDF. Internal cost /
  *  profit figures are deliberately never included. */
 export function generateQuotationPdf(order: Order) {
@@ -30,11 +19,10 @@ export function generateQuotationPdf(order: Order) {
   const { customer, details } = order;
 
   // ---- header ----
-  drawMark(doc, margin, 14);
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(15);
+  doc.setFontSize(16);
   doc.setTextColor(GREEN);
-  doc.text("VEGANOLOGIE", margin + 12, 21, { charSpace: 1.2 });
+  doc.text("VEGANOLOGIE", margin, 21, { charSpace: 1.4 });
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
