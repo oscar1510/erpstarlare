@@ -146,7 +146,8 @@ export function ProductsSection({
                       className="input w-20 py-1 text-right"
                       type="number"
                       min={0}
-                      value={l.quantity}
+                      value={l.quantity === 0 ? "" : l.quantity}
+                      onFocus={(e) => e.target.select()}
                       onChange={(e) =>
                         update(l.id, { quantity: clamp(parseInt(e.target.value, 10)) })
                       }
@@ -158,7 +159,8 @@ export function ProductsSection({
                       type="number"
                       min={0}
                       max={100}
-                      value={l.discountPct}
+                      value={l.discountPct === 0 ? "" : l.discountPct}
+                      onFocus={(e) => e.target.select()}
                       onChange={(e) =>
                         update(l.id, {
                           discountPct: Math.min(100, clamp(parseFloat(e.target.value))),

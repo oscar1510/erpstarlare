@@ -7,8 +7,11 @@ import { pct } from "../lib/format";
 // The big readout is rendered as HTML below the dial so it stays crisp and
 // never overflows the arc.
 
-const MIN = 0;
-const MAX = 60;
+// The dial spans 30–90% margin — the range where Veganologie orders actually
+// sit — so the coloured bands and needle spread across the arc. Below 30% pins
+// to the far-left (Poor); above 90% pins right (Excellent).
+const MIN = 30;
+const MAX = 90;
 const START = -110;
 const END = 110;
 
@@ -32,7 +35,7 @@ export function Gauge({ marginPct }: { marginPct: number }) {
   const cy = 200;
   const r = 150;
   const band = bandFor(marginPct);
-  const bounds = [0, 20, 30, 40, 50, MAX];
+  const bounds = [MIN, 45, 60, 70, 80, MAX];
 
   const needle = toAngle(marginPct);
   const tip = polar(cx, cy, r - 26, needle);

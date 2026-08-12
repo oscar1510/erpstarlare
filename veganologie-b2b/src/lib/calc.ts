@@ -86,12 +86,16 @@ export interface Band {
   color: string; // hex for the gauge arc + needle
 }
 
+// Bands are calibrated to Veganologie's real margins (products carry 60–85%
+// base margins), so that discounting visibly moves the rating. On a typical
+// item this maps roughly to: full price → Excellent, ~40% off → Good, ~50% off
+// → Acceptable, ~70% off → Poor. Adjust these five thresholds to taste.
 export const BANDS: Band[] = [
   { label: "POOR", min: -Infinity, color: "#d64545" },
-  { label: "ACCEPTABLE", min: 20, color: "#e8833a" },
-  { label: "GOOD", min: 30, color: "#e0b020" },
-  { label: "VERY GOOD", min: 40, color: "#6cae3e" },
-  { label: "EXCELLENT", min: 50, color: "#2f9e44" },
+  { label: "ACCEPTABLE", min: 45, color: "#e8833a" },
+  { label: "GOOD", min: 60, color: "#e0b020" },
+  { label: "VERY GOOD", min: 70, color: "#6cae3e" },
+  { label: "EXCELLENT", min: 80, color: "#2f9e44" },
 ];
 
 export function bandFor(marginPct: number): Band {
