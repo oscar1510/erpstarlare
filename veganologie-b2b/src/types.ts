@@ -3,12 +3,14 @@
 // Everything is persisted to the browser's localStorage; there is no backend.
 // ---------------------------------------------------------------------------
 
-/** A single sellable product in the catalog (built from the two uploaded files). */
+/** A single sellable product in the catalog (built from the two uploaded files).
+ *  `priceExcl` is the canonical price EXCLUDING VAT — all profit/margin maths use
+ *  it. The VAT-inclusive price is always priceExcl × 1.05 (see lib/calc). */
 export interface Product {
   id: string;
   sku: string; // real SKU if the file had one, otherwise a derived key
   name: string; // customer-facing display name (may include colour/fabric)
-  retail: number; // retail price, AED, excl. VAT
+  priceExcl: number; // unit price EXCLUDING 5% VAT, AED
   cost: number; // INTERNAL production/landing cost, AED — never shown to customers
   costMatched: boolean; // false if we couldn't match a cost and defaulted it
 }
@@ -18,10 +20,18 @@ export interface LineItem {
   id: string;
   productId: string;
   name: string; // snapshot of product name (so edits survive catalog replacement)
-  retail: number; // snapshot retail price
+  priceExcl: number; // snapshot unit price excl. VAT
   cost: number; // snapshot internal cost
   quantity: number;
   discountPct: number;
+}
+
+/** Whether the user is viewing/entering prices with or without VAT. Internally
+ *  everything is stored excl. VAT; this only changes what is displayed. */
+export type VatMode = "excl" | "incl";
+
+export interface AppSettings {
+  vatMode: VatMode;
 }
 
 export type PackagingKind = "veganologie" | "custom";
@@ -68,6 +78,7 @@ export interface QuotationDetails {
   materials: string; // one line per product/material note
   certifications: string; // e.g. "GRS | PETA-Approved Vegan | ..."
   terms: string; // one bullet per line
+  showVat: boolean; // if true, add the VAT 5% + incl-VAT total lines on the PDF
 }
 
 export interface Order {

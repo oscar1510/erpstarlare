@@ -84,8 +84,8 @@ export function ImportModal({
       {!result && (
         <div className="space-y-3">
           <FilePick
-            label="Retail Price file"
-            hint="Columns: Product Name, Retail / Full Price (SKU optional)"
+            label="Price file"
+            hint="Columns: Product Name, Full Price (treated as VAT-inclusive). SKU optional."
             file={priceFile}
             onPick={setPriceFile}
           />

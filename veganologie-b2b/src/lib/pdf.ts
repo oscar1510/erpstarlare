@@ -1,15 +1,46 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import type { Order } from "../types";
-import { computeProfitability, finalUnitPrice, lineTotal } from "./calc";
+import { computeProfitability, finalUnitPrice, lineTotalExcl } from "./calc";
 import { num, formatDate } from "./format";
 
 const GREEN = "#14442e";
 const GREEN_LIGHT = "#eef4f0";
 const GREY = "#6b7c72";
 
+// jsPDF's built-in Helvetica only covers WinAnsi. Characters outside it (the ₂
+// in CO₂, em/en dashes, smart quotes) make it fall back to a broken, letter-
+// spaced rendering — so map everything down to safe ASCII before drawing.
+function T(s: string): string {
+  return (s || "")
+    .replace(/[₀-₉]/g, (d) => String("₀₁₂₃₄₅₆₇₈₉".indexOf(d)))
+    .replace(/[²]/g, "2")
+    .replace(/[–—]/g, "-") // – —
+    .replace(/[‘’‚]/g, "'") // ' ' ‚
+    .replace(/[“”„]/g, '"') // " " „
+    .replace(/[×]/g, "x")
+    .replace(/[→]/g, "->")
+    .replace(/[•]/g, "-") // • -> - (bullets are added explicitly)
+    .replace(/[^\x09\x0A\x0D\x20-\x7E -ÿ]/g, ""); // drop anything else exotic
+}
+
+// A compact vector recreation of the leaf-in-V Veganologie mark, drawn to the
+// left of the wordmark in the brand green.
+function drawLeafMark(doc: jsPDF, x: number, y: number, s: number) {
+  doc.setDrawColor(GREEN);
+  doc.setLineWidth(s * 0.05);
+  // V stroke
+  doc.lines([[s * 0.28, s], [s * 0.28, -s]], x, y, [1, 1], "S");
+  // leaf body (rounded)
+  doc.setLineWidth(s * 0.04);
+  doc.ellipse(x + s * 0.5, y + s * 0.42, s * 0.22, s * 0.34, "S");
+  // central vein
+  doc.lines([[s * 0.02, s * 0.5]], x + s * 0.5, y + s * 0.12, [1, 1], "S");
+}
+
 /** Generate and download the customer-facing quotation PDF. Internal cost /
- *  profit figures are deliberately never included. */
+ *  profit figures are deliberately never included. All prices shown are the
+ *  B2B (excl-VAT) figures; VAT is optional (order.details.showVat). */
 export function generateQuotationPdf(order: Order) {
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
@@ -19,16 +50,17 @@ export function generateQuotationPdf(order: Order) {
   const { customer, details } = order;
 
   // ---- header ----
+  drawLeafMark(doc, margin, 12, 11);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(16);
   doc.setTextColor(GREEN);
-  doc.text("VEGANOLOGIE", margin, 21, { charSpace: 1.4 });
+  doc.text("VEGANOLOGIE", margin + 15, 21, { charSpace: 1.4 });
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   doc.setTextColor(GREY);
   doc.text("CORPORATE PARTNERSHIP PROPOSAL", pageW - margin, 16, { align: "right" });
-  doc.text(`Ref: ${order.quotationNumber}`, pageW - margin, 21, { align: "right" });
+  doc.text(`Ref: ${T(order.quotationNumber)}`, pageW - margin, 21, { align: "right" });
   doc.text(`Date: ${formatDate(order.createdAt)}`, pageW - margin, 26, { align: "right" });
   doc.text(`Valid for: ${details.validForDays} days`, pageW - margin, 31, { align: "right" });
 
@@ -53,42 +85,40 @@ export function generateQuotationPdf(order: Order) {
   const contact = [customer.phone, customer.email].filter(Boolean).join("  ·  ");
   if (contact) lines.push(contact);
   lines.forEach((l) => {
-    doc.text(l, margin, y);
+    doc.text(T(l), margin, y);
     y += 5;
   });
 
-  // ---- product table ----
+  // ---- product table (all prices excl. VAT) ----
   const body = order.lines.map((l) => [
-    l.name,
+    T(l.name),
     String(l.quantity),
-    `AED ${num(l.retail)}`,
-    l.discountPct ? `${l.discountPct}%` : "—",
-    `AED ${num(finalUnitPrice(l.retail, l.discountPct))}`,
-    `AED ${num(lineTotal(l))}`,
+    `AED ${num(l.priceExcl)}`,
+    l.discountPct ? `${l.discountPct}%` : "-",
+    `AED ${num(finalUnitPrice(l.priceExcl, l.discountPct))}`,
+    `AED ${num(lineTotalExcl(l))}`,
   ]);
 
-  // charged extras appear as commercial line items
   if (order.options.packaging.kind === "custom" && order.options.packaging.charged) {
     const boxes = order.options.packaging.numBoxes || 0;
     const total = order.options.packaging.sellingPrice || 0;
     const unit = boxes > 0 ? total / boxes : total;
     body.push([
-      order.options.packaging.label,
-      boxes ? String(boxes) : "—",
-      "—",
-      "—",
-      boxes ? `AED ${num(unit)}` : "—",
+      T(order.options.packaging.label),
+      boxes ? String(boxes) : "-",
+      "-",
+      "-",
+      boxes ? `AED ${num(unit)}` : "-",
       `AED ${num(total)}`,
     ]);
   }
   if (order.options.logo.kind === "custom" && order.options.logo.charged) {
-    const total = order.options.logo.sellingPrice || 0;
-    body.push([order.options.logo.label, "—", "—", "—", "—", `AED ${num(total)}`]);
+    body.push([T(order.options.logo.label), "-", "-", "-", "-", `AED ${num(order.options.logo.sellingPrice || 0)}`]);
   }
 
   autoTable(doc, {
     startY: y + 4,
-    head: [["Product", "Qty", "Retail Price", "Discount", "Final Unit Price", "Total"]],
+    head: [["Product", "Qty", "Price", "Discount", "Final Unit Price", "Total"]],
     body,
     theme: "grid",
     styles: { fontSize: 9, cellPadding: 2.5, textColor: "#333333", lineColor: "#e2e8e4" },
@@ -105,10 +135,10 @@ export function generateQuotationPdf(order: Order) {
   });
 
   // ---- totals ----
-  // @ts-expect-error lastAutoTable is injected by the autotable plugin
+  // @ts-expect-error injected by the autotable plugin
   let ty = doc.lastAutoTable.finalY + 8;
   const totalsX = pageW - margin - 70;
-  const totalRow = (label: string, value: string, bold = false, fill = false) => {
+  const row = (label: string, value: string, bold = false, fill = false) => {
     if (fill) {
       doc.setFillColor(GREEN_LIGHT);
       doc.rect(totalsX - 2, ty - 4.5, 72, 7, "F");
@@ -120,22 +150,29 @@ export function generateQuotationPdf(order: Order) {
     doc.text(value, pageW - margin, ty, { align: "right" });
     ty += bold ? 7.5 : 6;
   };
-  totalRow("Subtotal (excl. VAT)", `AED ${num(p.totalRevenue)}`);
-  totalRow("VAT 5%", `AED ${num(p.vat)}`);
-  totalRow("TOTAL (incl. VAT)", `AED ${num(p.totalWithVat)}`, true, true);
+  // Headline is the excl-VAT subtotal (the B2B figure). VAT is optional.
+  row("Subtotal (excl. VAT)", `AED ${num(p.totalRevenue)}`, true, true);
+  if (details.showVat) {
+    row("VAT 5%", `AED ${num(p.vat)}`);
+    row("Total (incl. VAT)", `AED ${num(p.totalWithVat)}`);
+  }
 
   doc.setFont("helvetica", "italic");
   doc.setFontSize(8);
   doc.setTextColor(GREY);
-  doc.text("Prices are exclusive of VAT. VAT is applied at 5% as shown above.", margin, ty + 1);
+  doc.text(
+    details.showVat
+      ? "Prices are exclusive of VAT. VAT is applied at 5% as shown above."
+      : "All prices are exclusive of VAT (5% VAT applies where chargeable).",
+    margin,
+    ty + 1,
+  );
 
   // ---- narrative sections ----
   ty += 10;
-
   const section = (title: string, bodyLines: string[], bullet = false) => {
     const filtered = bodyLines.filter((l) => l.trim());
     if (!filtered.length) return;
-    // page break if near bottom
     if (ty > 262) {
       doc.addPage();
       ty = 20;
@@ -149,9 +186,9 @@ export function generateQuotationPdf(order: Order) {
     doc.setFontSize(9);
     doc.setTextColor("#444444");
     filtered.forEach((l) => {
-      const prefix = bullet ? "•  " : "";
-      const wrapped = doc.splitTextToSize(prefix + l, contentW - (bullet ? 3 : 0));
-      wrapped.forEach((w: string, i: number) => {
+      const prefix = bullet ? "-  " : "";
+      const wrapped = doc.splitTextToSize(T(prefix + l), contentW - (bullet ? 3 : 0)) as string[];
+      wrapped.forEach((w, i) => {
         if (ty > 285) {
           doc.addPage();
           ty = 20;
@@ -175,7 +212,7 @@ export function generateQuotationPdf(order: Order) {
   section("LEAD TIMES", details.leadTimes.split("\n"), true);
   section("TERMS & CONDITIONS", details.terms.split("\n"), true);
 
-  // ---- footer on every page ----
+  // ---- footer ----
   const pages = doc.getNumberOfPages();
   for (let i = 1; i <= pages; i++) {
     doc.setPage(i);
@@ -186,10 +223,10 @@ export function generateQuotationPdf(order: Order) {
     doc.setFontSize(7.5);
     doc.setTextColor(GREY);
     doc.text("Veganologie · Sustainable Vegan Accessories · Dubai, UAE", margin, 293);
-    doc.text(`${order.quotationNumber}   ·   Page ${i} of ${pages}`, pageW - margin, 293, {
+    doc.text(`${T(order.quotationNumber)}   ·   Page ${i} of ${pages}`, pageW - margin, 293, {
       align: "right",
     });
   }
 
-  doc.save(`${order.quotationNumber}.pdf`);
+  doc.save(`${T(order.quotationNumber)}.pdf`);
 }

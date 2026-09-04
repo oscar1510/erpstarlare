@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Modal } from "./Modal";
 import type { Product } from "../types";
+import { withVat } from "../lib/calc";
 
 export function CatalogModal({
   catalog,
@@ -25,11 +26,10 @@ export function CatalogModal({
   }, [rows, q, onlyMissing]);
 
   const setCost = (id: string, cost: number) =>
-    setRows((rs) =>
-      rs.map((p) => (p.id === id ? { ...p, cost, costMatched: true } : p)),
-    );
-  const setRetail = (id: string, retail: number) =>
-    setRows((rs) => rs.map((p) => (p.id === id ? { ...p, retail } : p)));
+    setRows((rs) => rs.map((p) => (p.id === id ? { ...p, cost, costMatched: true } : p)));
+  // Edit the excl-VAT price (canonical); the incl-VAT column is derived.
+  const setPriceExcl = (id: string, priceExcl: number) =>
+    setRows((rs) => rs.map((p) => (p.id === id ? { ...p, priceExcl } : p)));
 
   const missing = rows.filter((p) => !p.costMatched || p.cost === 0).length;
 
@@ -58,8 +58,9 @@ export function CatalogModal({
           <thead className="sticky top-0 bg-forest-50 text-left text-xs uppercase tracking-wide text-forest-500">
             <tr>
               <th className="px-3 py-2 font-medium">Product</th>
-              <th className="px-3 py-2 text-right font-medium">Retail (AED)</th>
-              <th className="px-3 py-2 text-right font-medium">Cost (AED · internal)</th>
+              <th className="px-3 py-2 text-right font-medium">Price excl. VAT</th>
+              <th className="px-3 py-2 text-right font-medium">Price incl. VAT</th>
+              <th className="px-3 py-2 text-right font-medium">Cost (internal)</th>
             </tr>
           </thead>
           <tbody>
@@ -76,9 +77,12 @@ export function CatalogModal({
                     className="input w-28 py-1 text-right"
                     type="number"
                     min={0}
-                    value={p.retail}
-                    onChange={(e) => setRetail(p.id, Math.max(0, parseFloat(e.target.value) || 0))}
+                    value={p.priceExcl}
+                    onChange={(e) => setPriceExcl(p.id, Math.max(0, parseFloat(e.target.value) || 0))}
                   />
+                </td>
+                <td className="px-3 py-1.5 text-right tabular-nums text-forest-500">
+                  {withVat(p.priceExcl).toFixed(2)}
                 </td>
                 <td className="px-3 py-1.5 text-right">
                   <input
@@ -93,7 +97,7 @@ export function CatalogModal({
             ))}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={3} className="px-3 py-6 text-center text-forest-400">
+                <td colSpan={4} className="px-3 py-6 text-center text-forest-400">
                   Nothing to show.
                 </td>
               </tr>

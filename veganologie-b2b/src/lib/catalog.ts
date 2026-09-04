@@ -201,8 +201,11 @@ export async function buildCatalog(priceFile: File, costFile: File): Promise<Imp
     const r = priceRowsArr[i] || [];
     const nm = str(r[pName]);
     if (nm) lastPName = nm;
-    const retail = pRetail >= 0 ? parseNumber(r[pRetail]) : null;
-    if (!lastPName || retail == null) continue;
+    // The pricelist "Full Price" is VAT-INCLUSIVE, so convert to the canonical
+    // excl-VAT price (÷ 1.05). See the VAT model in lib/calc.
+    const priceInclFile = pRetail >= 0 ? parseNumber(r[pRetail]) : null;
+    if (!lastPName || priceInclFile == null) continue;
+    const priceExcl = Math.round((priceInclFile / 1.05) * 100) / 100;
 
     const colour = pColour >= 0 ? str(r[pColour]) : "";
     const fabric = pFabric >= 0 ? str(r[pFabric]) : "";
@@ -228,7 +231,7 @@ export async function buildCatalog(priceFile: File, costFile: File): Promise<Imp
       id,
       sku: sku || id,
       name,
-      retail,
+      priceExcl,
       cost: Math.round(cost * 100) / 100,
       costMatched: cm,
     });

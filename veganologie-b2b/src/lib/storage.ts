@@ -1,10 +1,11 @@
-import type { Order, Product, OrderOptions, QuotationDetails, Customer } from "../types";
+import type { Order, Product, OrderOptions, QuotationDetails, Customer, AppSettings } from "../types";
 
 // Everything persists to localStorage — no server, no database.
 const K_CATALOG = "vg_catalog_v1";
 const K_CATALOG_SRC = "vg_catalog_src_v1";
 const K_ORDERS = "vg_orders_v1";
 const K_COUNTER = "vg_quote_counter_v1";
+const K_SETTINGS = "vg_settings_v1";
 
 function read<T>(key: string, fallback: T): T {
   try {
@@ -54,6 +55,14 @@ export function deleteOrder(id: string) {
   );
 }
 
+// --- settings ---
+export function loadSettings(): AppSettings {
+  return read<AppSettings>(K_SETTINGS, { vatMode: "excl" });
+}
+export function saveSettings(s: AppSettings) {
+  write(K_SETTINGS, s);
+}
+
 // --- quotation numbers: VG-CPP-<year>-#### ---
 export function nextQuotationNumber(): string {
   const year = new Date().getFullYear();
@@ -98,14 +107,14 @@ export function defaultOptions(): OrderOptions {
 // editable before the quotation is generated.
 export function defaultDetails(): QuotationDetails {
   return {
-    leadTimes: "Standard stock items: 1 – 2 weeks\nCustom gift boxes & branding: 4 – 6 weeks",
+    leadTimes: "Standard stock items: 1-2 weeks\nCustom gift boxes & branding: 4-6 weeks",
     validForDays: 7,
     colourNote: "All units in Veganologie signature forest green.",
     packagingNote: "Veganologie signature packaging.",
     whatsIncluded: [
       "All products in Veganologie's signature forest green with existing branding",
       "Co-branded story card in every box",
-      "ESG Impact Certificate — CO₂ avoided, water conserved, trees planted — formatted for CSR reporting",
+      "ESG Impact Certificate - CO2 avoided, water conserved, trees planted - formatted for CSR reporting",
       "Mangrove tree planting on the UAE coastline (1 tree per 10 units) via Goumbook",
       "Delivery included",
     ].join("\n"),
@@ -116,5 +125,6 @@ export function defaultDetails(): QuotationDetails {
       "All prices in AED",
       "Lead times commence from deposit receipt and approval of all designs",
     ].join("\n"),
+    showVat: true,
   };
 }

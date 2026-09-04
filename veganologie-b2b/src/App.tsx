@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import type { Order, Product } from "./types";
+import type { Order, Product, AppSettings } from "./types";
 import { computeProfitability } from "./lib/calc";
 import {
   loadCatalog,
   loadCatalogSource,
   saveCatalog,
+  loadSettings,
+  saveSettings,
   loadOrders,
   saveOrder,
   deleteOrder as removeOrder,
@@ -18,7 +20,7 @@ import { Wordmark } from "./components/Logo";
 import { SEED_CATALOG } from "./data/seedCatalog";
 
 // Bump when the built-in catalog changes so returning users get the update.
-const SEED_SOURCE = "seed:2";
+const SEED_SOURCE = "seed:3";
 import { CustomerSection } from "./components/CustomerSection";
 import { ProductsSection } from "./components/ProductsSection";
 import { OptionsSection } from "./components/OptionsSection";
@@ -51,6 +53,12 @@ export default function App() {
   const [modal, setModal] = useState<ModalKind>(null);
   const [toast, setToast] = useState("");
   const [dirty, setDirty] = useState(false);
+  const [settings, setSettings] = useState<AppSettings>({ vatMode: "excl" });
+
+  const updateSettings = (s: AppSettings) => {
+    setSettings(s);
+    saveSettings(s);
+  };
 
   useEffect(() => {
     // Products are pre-loaded from the Veganologie price + cost files. Seed the
@@ -67,6 +75,7 @@ export default function App() {
       setCatalog(stored);
     }
     setOrders(loadOrders());
+    setSettings(loadSettings());
   }, []);
 
   const prof = useMemo(
@@ -99,7 +108,7 @@ export default function App() {
       ...o,
       lines: o.lines.map((l) => {
         const p = products.find((x) => x.id === l.productId);
-        return p ? { ...l, cost: p.cost, retail: l.retail } : l;
+        return p ? { ...l, cost: p.cost, priceExcl: p.priceExcl } : l;
       }),
     }));
     flash("Catalog updated");
@@ -208,6 +217,8 @@ export default function App() {
             <ProductsSection
               lines={order.lines}
               catalog={catalog}
+              vatMode={settings.vatMode}
+              onVatMode={(vatMode) => updateSettings({ ...settings, vatMode })}
               onChange={(lines) => update({ lines })}
             />
             <OptionsSection

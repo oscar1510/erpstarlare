@@ -55,19 +55,40 @@ export function QuotationModal({
               <span className="text-forest-500">Quotation #</span>
               <span className="font-semibold text-forest-800">{order.quotationNumber}</span>
             </div>
-            <div className="mt-2 flex justify-between">
-              <span className="text-forest-500">Subtotal (excl. VAT)</span>
+            <div className="mt-2 flex justify-between font-bold text-forest-800">
+              <span>Subtotal (excl. VAT)</span>
               <span className="tabular-nums">{aed(prof.totalRevenue)}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-forest-500">VAT 5%</span>
-              <span className="tabular-nums">{aed(prof.vat)}</span>
-            </div>
-            <div className="mt-1 flex justify-between border-t border-forest-200 pt-1 font-bold text-forest-800">
-              <span>Total (incl. VAT)</span>
-              <span className="tabular-nums">{aed(prof.totalWithVat)}</span>
-            </div>
+            {d.showVat && (
+              <>
+                <div className="mt-1 flex justify-between text-forest-500">
+                  <span>VAT 5%</span>
+                  <span className="tabular-nums">{aed(prof.vat)}</span>
+                </div>
+                <div className="flex justify-between text-forest-500">
+                  <span>Total (incl. VAT)</span>
+                  <span className="tabular-nums">{aed(prof.totalWithVat)}</span>
+                </div>
+              </>
+            )}
           </div>
+
+          {/* B2B: excl-VAT price is the headline; VAT-inclusive total is optional (#5) */}
+          <label className="flex items-start gap-2 text-sm text-forest-700">
+            <input
+              type="checkbox"
+              className="mt-0.5"
+              checked={d.showVat}
+              onChange={(e) => patch({ showVat: e.target.checked })}
+            />
+            <span>
+              Show the VAT-inclusive total on the quotation
+              <span className="block text-xs text-forest-400">
+                Prices are shown excluding VAT (the B2B figure). Tick this to also add a “VAT 5%”
+                and “Total incl. VAT” line at the bottom.
+              </span>
+            </span>
+          </label>
 
           <div className="flex gap-3">
             <div className="w-28">
