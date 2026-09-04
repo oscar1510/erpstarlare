@@ -3,6 +3,7 @@ import autoTable from "jspdf-autotable";
 import type { Order } from "../types";
 import { computeProfitability, finalUnitPrice, lineTotalExcl } from "./calc";
 import { num, formatDate } from "./format";
+import { LOGO_PNG } from "../data/logo";
 
 const GREEN = "#14442e";
 const GREEN_LIGHT = "#eef4f0";
@@ -24,20 +25,6 @@ function T(s: string): string {
     .replace(/[^\x09\x0A\x0D\x20-\x7E -ÿ]/g, ""); // drop anything else exotic
 }
 
-// A compact vector recreation of the leaf-in-V Veganologie mark, drawn to the
-// left of the wordmark in the brand green.
-function drawLeafMark(doc: jsPDF, x: number, y: number, s: number) {
-  doc.setDrawColor(GREEN);
-  doc.setLineWidth(s * 0.05);
-  // V stroke
-  doc.lines([[s * 0.28, s], [s * 0.28, -s]], x, y, [1, 1], "S");
-  // leaf body (rounded)
-  doc.setLineWidth(s * 0.04);
-  doc.ellipse(x + s * 0.5, y + s * 0.42, s * 0.22, s * 0.34, "S");
-  // central vein
-  doc.lines([[s * 0.02, s * 0.5]], x + s * 0.5, y + s * 0.12, [1, 1], "S");
-}
-
 /** Generate and download the customer-facing quotation PDF. Internal cost /
  *  profit figures are deliberately never included. All prices shown are the
  *  B2B (excl-VAT) figures; VAT is optional (order.details.showVat). */
@@ -50,11 +37,12 @@ export function generateQuotationPdf(order: Order) {
   const { customer, details } = order;
 
   // ---- header ----
-  drawLeafMark(doc, margin, 12, 11);
+  // leaf-in-V mark (0.75 aspect) + wordmark
+  doc.addImage(LOGO_PNG, "PNG", margin, 10, 9, 12);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(16);
   doc.setTextColor(GREEN);
-  doc.text("VEGANOLOGIE", margin + 15, 21, { charSpace: 1.4 });
+  doc.text("VEGANOLOGIE", margin + 13, 20, { charSpace: 1.4 });
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
