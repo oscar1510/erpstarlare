@@ -1,8 +1,8 @@
-// AUTO-GENERATED from Final_costing.xlsx + Full_Price_Pricelist_mm.xlsx.
-// Pre-loaded so products are available immediately — no upload needed.
-// The pricelist's "Full Price" is VAT-INCLUSIVE, so priceExcl = fileprice / 1.05.
-// All profit/margin maths use priceExcl; the VAT-inclusive price is priceExcl*1.05.
-// Production 'cost' is INTERNAL only and never shown on customer quotations.
+// AUTO-GENERATED from Production_Dashboard (landing costs) + Full_Price_Pricelist.
+// Pricelist "Full Price" is VAT-INCLUSIVE -> priceExcl = fileprice / 1.05.
+// Cost matched by exact name, else by shared distinctive word (generic words
+// like "bag"/"charm" alone don't match); China preferred across manufacturers.
+// Unmatched items keep cost 0 and are flagged for manual entry. Cost is INTERNAL.
 import type { Product } from "../types";
 
 export const SEED_CATALOG: Product[] = [
@@ -11,8 +11,8 @@ export const SEED_CATALOG: Product[] = [
     "sku": "bag-charm",
     "name": "Bag Charm",
     "priceExcl": 80.95,
-    "cost": 167.04,
-    "costMatched": true
+    "cost": 0,
+    "costMatched": false
   },
   {
     "id": "maze-crossbody-veganologie-with-gold-hardware-bamboo",
@@ -283,7 +283,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "mini-maze-veganologie-bamboo",
     "name": "Mini Maze — Veganologie (Bamboo)",
     "priceExcl": 313.33,
-    "cost": 117.43,
+    "cost": 62.12,
     "costMatched": true
   },
   {
@@ -291,7 +291,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "mini-maze-onyx-bamboo",
     "name": "Mini Maze — Onyx (Bamboo)",
     "priceExcl": 313.33,
-    "cost": 117.43,
+    "cost": 62.12,
     "costMatched": true
   },
   {
@@ -339,7 +339,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "maze-tote-bag-veganologie-bamboo",
     "name": "Maze Tote Bag — Veganologie (Bamboo)",
     "priceExcl": 947.62,
-    "cost": 168.09,
+    "cost": 203.55,
     "costMatched": true
   },
   {
@@ -347,7 +347,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "maze-tote-bag-onyx-bamboo",
     "name": "Maze Tote Bag — Onyx (Bamboo)",
     "priceExcl": 947.62,
-    "cost": 168.09,
+    "cost": 203.55,
     "costMatched": true
   },
   {
@@ -355,7 +355,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "maze-tote-bag-blueberry-bamboo",
     "name": "Maze Tote Bag — Blueberry (Bamboo)",
     "priceExcl": 947.62,
-    "cost": 168.09,
+    "cost": 203.55,
     "costMatched": true
   },
   {
@@ -363,7 +363,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "maze-tote-bag-chocolate-bamboo",
     "name": "Maze Tote Bag — Chocolate (Bamboo)",
     "priceExcl": 947.62,
-    "cost": 168.09,
+    "cost": 203.55,
     "costMatched": true
   },
   {
@@ -371,7 +371,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "maze-tote-bag-veganologie-pu",
     "name": "Maze Tote Bag — Veganologie (PU)",
     "priceExcl": 947.62,
-    "cost": 168.09,
+    "cost": 203.55,
     "costMatched": true
   },
   {
@@ -379,7 +379,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "maze-tote-bag-onyx-pu",
     "name": "Maze Tote Bag — Onyx (PU)",
     "priceExcl": 947.62,
-    "cost": 168.09,
+    "cost": 203.55,
     "costMatched": true
   },
   {
@@ -387,7 +387,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "maze-tote-bag-blueberry-pu",
     "name": "Maze Tote Bag — Blueberry (PU)",
     "priceExcl": 947.62,
-    "cost": 168.09,
+    "cost": 203.55,
     "costMatched": true
   },
   {
@@ -395,7 +395,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "maze-tote-bag-cinnamon-pu",
     "name": "Maze Tote Bag — Cinnamon (PU)",
     "priceExcl": 947.62,
-    "cost": 168.09,
+    "cost": 203.55,
     "costMatched": true
   },
   {
@@ -403,7 +403,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "maze-tote-bag-blush-pu",
     "name": "Maze Tote Bag — Blush (PU)",
     "priceExcl": 947.62,
-    "cost": 168.09,
+    "cost": 203.55,
     "costMatched": true
   },
   {
@@ -411,7 +411,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "maze-tote-bag-pearl-pu",
     "name": "Maze Tote Bag — Pearl (PU)",
     "priceExcl": 947.62,
-    "cost": 168.09,
+    "cost": 203.55,
     "costMatched": true
   },
   {
@@ -499,7 +499,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "arabesque-tote-dusty-rose-bamboo",
     "name": "Arabesque Tote — Dusty Rose (Bamboo)",
     "priceExcl": 590.48,
-    "cost": 130.17,
+    "cost": 126.35,
     "costMatched": true
   },
   {
@@ -507,7 +507,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "arabesque-tote-dunes-bamboo",
     "name": "Arabesque Tote — Dunes (Bamboo)",
     "priceExcl": 590.48,
-    "cost": 130.17,
+    "cost": 126.35,
     "costMatched": true
   },
   {
@@ -1091,7 +1091,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "cider-cardholder-veganologie-apple",
     "name": "Cider Cardholder — Veganologie (Apple)",
     "priceExcl": 271.43,
-    "cost": 54.42,
+    "cost": 51.22,
     "costMatched": true
   },
   {
@@ -1099,7 +1099,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "cider-cardholder-onyx-apple",
     "name": "Cider Cardholder — Onyx (Apple)",
     "priceExcl": 271.43,
-    "cost": 54.42,
+    "cost": 51.22,
     "costMatched": true
   },
   {
@@ -1107,7 +1107,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "cider-cardholder-sand-apple",
     "name": "Cider Cardholder — Sand (Apple)",
     "priceExcl": 271.43,
-    "cost": 54.42,
+    "cost": 51.22,
     "costMatched": true
   },
   {
@@ -1115,7 +1115,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "cider-cardholder-syrah-apple",
     "name": "Cider Cardholder — Syrah (Apple)",
     "priceExcl": 271.43,
-    "cost": 54.42,
+    "cost": 51.22,
     "costMatched": true
   },
   {
@@ -1123,7 +1123,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "cider-cardholder-ginger-apple",
     "name": "Cider Cardholder — Ginger (Apple)",
     "priceExcl": 271.43,
-    "cost": 54.42,
+    "cost": 51.22,
     "costMatched": true
   },
   {
@@ -1131,7 +1131,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "cider-cardholder-pepper-apple",
     "name": "Cider Cardholder — Pepper (Apple)",
     "priceExcl": 271.43,
-    "cost": 54.42,
+    "cost": 51.22,
     "costMatched": true
   },
   {
@@ -1147,7 +1147,7 @@ export const SEED_CATALOG: Product[] = [
     "sku": "heritage-tassel-one-colour-bamboo",
     "name": "Heritage Tassel — One Colour (Bamboo)",
     "priceExcl": 90.48,
-    "cost": 134,
+    "cost": 16.13,
     "costMatched": true
   },
   {

@@ -71,6 +71,11 @@ function str(cell: string | number | null): string {
 // --- name matching -----------------------------------------------------------
 
 const STOP = new Set(["the", "w", "with", "for", "and", "of", "a", "hw"]);
+// Generic descriptor words that must NOT, on their own, establish a match —
+// otherwise "Bag Charm" wrongly matches any "... Bag" product.
+const GENERIC = new Set([
+  "bag", "bags", "charm", "pouch", "pouches", "tote", "purse", "cover", "tag", "holder", "sleeve", "case", "box",
+]);
 const SIZE = new Set(["small", "medium", "large"]);
 const COUNTRY = /\b(china|turkey|india|vietnam|prc|bangladesh)\b/;
 
@@ -93,16 +98,17 @@ function sizeTokens(s: string): string[] {
   return tokenize(s).filter((t) => SIZE.has(t) || /^\d{1,2}$/.test(t));
 }
 
-/** Coverage of the smaller token set, plus a bonus when product families align. */
+/** Coverage of the smaller token set, plus a bonus when product families align.
+ *  Requires at least one shared DISTINCTIVE (non-generic) token. */
 function score(p: string, c: string): number {
   const pt = tokenize(p);
   const ct = tokenize(c);
   if (!pt.length || !ct.length) return 0;
   const cs = new Set(ct);
-  let shared = 0;
-  for (const t of pt) if (cs.has(t)) shared++;
-  if (!shared) return 0;
-  const cov = shared / Math.min(pt.length, ct.length);
+  const shared = pt.filter((t) => cs.has(t));
+  if (!shared.length) return 0;
+  if (!shared.some((t) => !GENERIC.has(t))) return 0; // only generic words in common
+  const cov = shared.length / Math.min(pt.length, ct.length);
   const fam = pt[0] === ct[0] || cs.has(pt[0]) || new Set(pt).has(ct[0]);
   if (!fam && cov < 0.6) return 0;
   return cov + (fam ? 0.3 : 0);
@@ -157,6 +163,9 @@ export async function buildCatalog(priceFile: File, costFile: File): Promise<Imp
 
   const resolveCost = (pname: string, sku: string): { cost: number; matched: boolean } => {
     if (sku && costBySku.has(sku.toLowerCase())) return { cost: costBySku.get(sku.toLowerCase())!, matched: true };
+    // exact product-name match wins over any fuzzy match
+    const exact = entries.filter((e) => normName(e.name) === normName(pname));
+    if (exact.length) return { cost: pickCost(exact), matched: true };
     let best = 0;
     const scored: { e: CostEntry; s: number }[] = [];
     for (const e of entries) {
