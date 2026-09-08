@@ -2,6 +2,16 @@ import type { Profitability } from "../types";
 import { Gauge } from "./Gauge";
 import { aed0, pct } from "../lib/format";
 
+// Pick a font size that keeps even large AED figures on one line inside the tile.
+function sizeFor(value: string): string {
+  const n = value.length;
+  if (n <= 9) return "text-xl";
+  if (n <= 11) return "text-lg";
+  if (n <= 12) return "text-base";
+  if (n <= 14) return "text-sm";
+  return "text-xs";
+}
+
 function Stat({
   label,
   value,
@@ -14,11 +24,14 @@ function Stat({
   const color =
     accent === "green" ? "text-forest-700" : accent === "red" ? "text-red-600" : "text-forest-900";
   return (
-    <div className="min-w-0 rounded-xl border border-forest-100 bg-white px-4 py-3">
+    <div className="min-w-0 rounded-xl border border-forest-100 bg-white px-3 py-3">
       <div className="truncate text-[11px] font-medium uppercase tracking-wider text-forest-400">
         {label}
       </div>
-      <div className={`mt-1 truncate text-xl font-bold tabular-nums ${color}`} title={value}>
+      <div
+        className={`mt-1 whitespace-nowrap leading-tight font-bold tabular-nums ${sizeFor(value)} ${color}`}
+        title={value}
+      >
         {value}
       </div>
     </div>
@@ -51,14 +64,18 @@ export function ProfitabilitySection({ prof }: { prof: Profitability }) {
       </div>
 
       {/* secondary figures */}
-      <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-1 border-t border-forest-100 px-5 py-3 text-sm">
-        <div className="flex items-center justify-between">
-          <span className="text-forest-400">Retail Value</span>
-          <span className="font-medium tabular-nums text-forest-700">{aed0(prof.retailValue)}</span>
+      <div className="mt-3 grid grid-cols-1 gap-y-1 border-t border-forest-100 px-5 py-3 text-sm">
+        <div className="flex items-center justify-between gap-3">
+          <span className="shrink-0 text-forest-400">Retail Value</span>
+          <span className="whitespace-nowrap font-medium tabular-nums text-forest-700">
+            {aed0(prof.retailValue)}
+          </span>
         </div>
-        <div className="flex items-center justify-between">
-          <span className="text-forest-400">Discount Given</span>
-          <span className="font-medium tabular-nums text-forest-700">{aed0(prof.totalDiscount)}</span>
+        <div className="flex items-center justify-between gap-3">
+          <span className="shrink-0 text-forest-400">Total Discount Given</span>
+          <span className="whitespace-nowrap font-medium tabular-nums text-forest-700">
+            {aed0(prof.totalDiscount)}
+          </span>
         </div>
       </div>
 
