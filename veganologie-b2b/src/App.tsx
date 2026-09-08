@@ -183,7 +183,11 @@ export default function App() {
             className="rounded-lg outline-none focus:ring-2 focus:ring-forest-500/30"
           >
             {settings.logoDataUrl ? (
-              <img src={settings.logoDataUrl} alt="Veganologie" className="h-8 max-w-[220px] object-contain" />
+              <img
+                src={settings.logoDataUrl}
+                alt="Veganologie"
+                className="h-11 w-auto max-w-[300px] object-contain"
+              />
             ) : (
               <Wordmark />
             )}

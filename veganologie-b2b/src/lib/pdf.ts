@@ -38,11 +38,19 @@ export function generateQuotationPdf(order: Order, logo?: { url: string; aspect:
 
   // ---- header ----
   if (logo?.url) {
-    // Custom uploaded logo (includes the wordmark) — size by aspect, capped.
-    const h = 14;
-    const w = Math.min(72, h * (logo.aspect || 4));
+    // Custom uploaded logo (includes the wordmark) — fit within a height and
+    // width cap without distortion.
+    const aspect = logo.aspect || 4;
+    const maxH = 18;
+    const maxW = 95;
+    let w = maxH * aspect;
+    let h = maxH;
+    if (w > maxW) {
+      w = maxW;
+      h = maxW / aspect;
+    }
     try {
-      doc.addImage(logo.url, "PNG", margin, 9, w, h);
+      doc.addImage(logo.url, "PNG", margin, 10, w, h);
     } catch {
       // fall through to the built-in mark if the image can't be drawn
     }
