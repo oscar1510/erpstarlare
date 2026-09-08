@@ -7,10 +7,12 @@ export function CatalogModal({
   catalog,
   onClose,
   onSave,
+  onReset,
 }: {
   catalog: Product[];
   onClose: () => void;
   onSave: (products: Product[]) => void;
+  onReset: () => void;
 }) {
   const [rows, setRows] = useState<Product[]>(catalog.map((p) => ({ ...p })));
   const [q, setQ] = useState("");
@@ -106,19 +108,37 @@ export function CatalogModal({
         </table>
       </div>
 
-      <div className="mt-4 flex justify-end gap-2">
-        <button className="btn-ghost" onClick={onClose}>
-          Cancel
-        </button>
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
         <button
-          className="btn-primary"
+          className="btn-ghost text-forest-600"
           onClick={() => {
-            onSave(rows);
-            onClose();
+            if (
+              confirm(
+                "Reset all prices and costs to the latest built-in Veganologie catalog? This discards any manual edits.",
+              )
+            ) {
+              onReset();
+              onClose();
+            }
           }}
+          title="Reload the latest built-in prices and costs"
         >
-          Save costs
+          ↺ Reset to built-in
         </button>
+        <div className="flex gap-2">
+          <button className="btn-ghost" onClick={onClose}>
+            Cancel
+          </button>
+          <button
+            className="btn-primary"
+            onClick={() => {
+              onSave(rows);
+              onClose();
+            }}
+          >
+            Save costs
+          </button>
+        </div>
       </div>
     </Modal>
   );

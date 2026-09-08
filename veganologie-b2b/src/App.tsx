@@ -21,7 +21,7 @@ import { LogoModal } from "./components/LogoModal";
 import { SEED_CATALOG } from "./data/seedCatalog";
 
 // Bump when the built-in catalog changes so returning users get the update.
-const SEED_SOURCE = "seed:4";
+const SEED_SOURCE = "seed:5";
 import { CustomerSection } from "./components/CustomerSection";
 import { ProductsSection } from "./components/ProductsSection";
 import { OptionsSection } from "./components/OptionsSection";
@@ -298,6 +298,18 @@ export default function App() {
           catalog={catalog}
           onClose={() => setModal(null)}
           onSave={handleCatalogSave}
+          onReset={() => {
+            setCatalog(SEED_CATALOG);
+            saveCatalog(SEED_CATALOG, SEED_SOURCE);
+            setOrder((o) => ({
+              ...o,
+              lines: o.lines.map((l) => {
+                const p = SEED_CATALOG.find((x) => x.id === l.productId);
+                return p ? { ...l, cost: p.cost, priceExcl: p.priceExcl } : l;
+              }),
+            }));
+            flash("Catalog reset to built-in");
+          }}
         />
       )}
       {modal === "saved" && (

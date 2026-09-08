@@ -120,6 +120,7 @@ const avg = (a: number[]) => a.reduce((x, y) => x + y, 0) / a.length;
 interface CostEntry {
   name: string;
   sku: string;
+  material: string;
   cost: number;
 }
 
@@ -134,6 +135,18 @@ function pickCost(entries: CostEntry[]): number {
   return avg(entries.map((e) => e.cost));
 }
 
+/** Narrow a matched family to the entries whose material matches the product's
+ *  fabric (PU / Bamboo / Apple / …). Costs differ a lot by material, so this is
+ *  essential. Falls back to the whole family if nothing matches. */
+function materialFilter(family: CostEntry[], fabric: string): CostEntry[] {
+  if (!fabric) return family;
+  const f = normName(fabric);
+  const exact = family.filter((e) => normName(e.material) === f);
+  if (exact.length) return exact;
+  const contains = family.filter((e) => normName(e.material).split(" ").includes(f));
+  return contains.length ? contains : family;
+}
+
 function slug(s: string): string {
   return normName(s).replace(/ /g, "-") || "item";
 }
@@ -145,6 +158,7 @@ export async function buildCatalog(priceFile: File, costFile: File): Promise<Imp
   const cH = headerText(costRows[cHeaderIdx]);
   const cName = Math.max(0, colIndex(cH, ["name", "product", "item", "description"]));
   const cCost = colIndex(cH, ["landing", "cost", "price"]);
+  const cMat = colIndex(cH, ["material", "fabric"]);
   const cSku = colIndex(cH, ["sku", "code", "article", "barcode"]);
 
   const entries: CostEntry[] = [];
@@ -158,14 +172,18 @@ export async function buildCatalog(priceFile: File, costFile: File): Promise<Imp
     if (!lastCName || cost == null) continue;
     const sku = cSku >= 0 ? str(r[cSku]) : "";
     if (sku) costBySku.set(sku.toLowerCase(), cost);
-    entries.push({ name: lastCName, sku, cost });
+    entries.push({ name: lastCName, sku, material: cMat >= 0 ? str(r[cMat]) : "", cost });
   }
 
-  const resolveCost = (pname: string, sku: string): { cost: number; matched: boolean } => {
+  const resolveCost = (
+    pname: string,
+    sku: string,
+    fabric: string,
+  ): { cost: number; matched: boolean } => {
     if (sku && costBySku.has(sku.toLowerCase())) return { cost: costBySku.get(sku.toLowerCase())!, matched: true };
     // exact product-name match wins over any fuzzy match
     const exact = entries.filter((e) => normName(e.name) === normName(pname));
-    if (exact.length) return { cost: pickCost(exact), matched: true };
+    if (exact.length) return { cost: pickCost(materialFilter(exact, fabric)), matched: true };
     let best = 0;
     const scored: { e: CostEntry; s: number }[] = [];
     for (const e of entries) {
@@ -179,6 +197,7 @@ export async function buildCatalog(priceFile: File, costFile: File): Promise<Imp
     const top = scored.reduce((a, b) => (b.s > a.s ? b : a)).e;
     const fam = tokenize(top.name)[0];
     let family = scored.filter((x) => x.s >= best - 0.2 && tokenize(x.e.name)[0] === fam).map((x) => x.e);
+    family = materialFilter(family, fabric); // costs differ by material
     const ps = sizeTokens(pname);
     if (ps.length) {
       const sized = family.filter((e) => sizeTokens(e.name).some((z) => ps.includes(z)));
@@ -221,7 +240,7 @@ export async function buildCatalog(priceFile: File, costFile: File): Promise<Imp
     const sku = pSku >= 0 ? str(r[pSku]) : "";
     priceCount++;
 
-    const { cost, matched: cm } = resolveCost(lastPName, sku);
+    const { cost, matched: cm } = resolveCost(lastPName, sku, fabric);
     if (cm) matched++;
 
     const parts = [lastPName];
