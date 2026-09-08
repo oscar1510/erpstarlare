@@ -67,8 +67,14 @@ export default function App() {
     // or edited themselves (source === "import").
     const stored = loadCatalog();
     const source = loadCatalogSource();
-    const outdatedSeed = source.startsWith("seed:") && source !== SEED_SOURCE;
-    if (!stored.length || outdatedSeed) {
+    const isImport = source === "import";
+    // Old catalogs stored a `retail` field; the current model uses `priceExcl`.
+    // A stored catalog missing priceExcl is unusable (every price reads as 0),
+    // so always re-seed it. Otherwise re-seed on first visit or when the
+    // built-in version changed — but never clobber a catalog the user imported.
+    const wrongShape = stored.length > 0 && stored.some((p) => typeof p.priceExcl !== "number");
+    const outdatedSeed = !isImport && source !== SEED_SOURCE;
+    if (!stored.length || wrongShape || outdatedSeed) {
       setCatalog(SEED_CATALOG);
       saveCatalog(SEED_CATALOG, SEED_SOURCE);
     } else {
