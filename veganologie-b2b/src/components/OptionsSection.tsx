@@ -70,17 +70,20 @@ function ChargedBlock({
   charged,
   amount,
   amountLabel,
+  passthroughCost,
   onCharged,
   onAmount,
 }: {
   charged: boolean;
   amount: number;
   amountLabel: string;
+  passthroughCost: number; // the internal cost of this extra
   onCharged: (v: boolean) => void;
   onAmount: (v: number) => void;
 }) {
+  const atCost = Math.abs(amount - passthroughCost) < 0.01 && passthroughCost > 0;
   return (
-    <div className="flex flex-wrap items-end gap-4">
+    <div className="space-y-2">
       <div>
         <label className="field-label">Charged to Customer?</label>
         <Toggle
@@ -92,7 +95,25 @@ function ChargedBlock({
           onChange={(v) => onCharged(v === "yes")}
         />
       </div>
-      {charged && <NumField label={amountLabel} value={amount} onChange={onAmount} />}
+      {charged && (
+        <div>
+          <NumField label={`${amountLabel} (excl. VAT)`} value={amount} onChange={onAmount} />
+          <div className="mt-1 text-[11px] text-forest-400">
+            Cost: AED {passthroughCost.toLocaleString("en-AE", { maximumFractionDigits: 2 })}.{" "}
+            {atCost ? (
+              <span className="text-forest-500">Charged at cost — pass-through (no margin impact).</span>
+            ) : (
+              <button
+                type="button"
+                className="font-medium text-forest-600 underline hover:text-forest-800"
+                onClick={() => onAmount(Math.round(passthroughCost * 100) / 100)}
+              >
+                Charge at cost (pass-through)
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -145,7 +166,17 @@ export function OptionsSection({
                 charged={packaging.charged}
                 amount={packaging.sellingPrice}
                 amountLabel="Selling Price (total)"
-                onCharged={(charged) => patch({ packaging: { ...packaging, charged } })}
+                passthroughCost={(packaging.costPerBox || 0) * (packaging.numBoxes || 0)}
+                onCharged={(charged) => {
+                  // Default to charging at cost so "Yes" is a true pass-through
+                  // (profitability returns to its pre-packaging level).
+                  const cost = (packaging.costPerBox || 0) * (packaging.numBoxes || 0);
+                  const sellingPrice =
+                    charged && !packaging.sellingPrice
+                      ? Math.round(cost * 100) / 100
+                      : packaging.sellingPrice;
+                  patch({ packaging: { ...packaging, charged, sellingPrice } });
+                }}
                 onAmount={(sellingPrice) => patch({ packaging: { ...packaging, sellingPrice } })}
               />
             </div>
@@ -175,7 +206,14 @@ export function OptionsSection({
                 charged={logo.charged}
                 amount={logo.sellingPrice}
                 amountLabel="Amount Charged"
-                onCharged={(charged) => patch({ logo: { ...logo, charged } })}
+                passthroughCost={logo.cost || 0}
+                onCharged={(charged) => {
+                  const sellingPrice =
+                    charged && !logo.sellingPrice
+                      ? Math.round((logo.cost || 0) * 100) / 100
+                      : logo.sellingPrice;
+                  patch({ logo: { ...logo, charged, sellingPrice } });
+                }}
                 onAmount={(sellingPrice) => patch({ logo: { ...logo, sellingPrice } })}
               />
             </div>

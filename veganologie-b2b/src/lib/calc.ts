@@ -9,7 +9,8 @@ export function withVat(net: number): number {
 
 /** A line's unit price in the requested view (excl. or incl. VAT). */
 export function unitPrice(line: LineItem, mode: VatMode): number {
-  return mode === "incl" ? withVat(line.priceExcl) : line.priceExcl;
+  const excl = Number.isFinite(line.priceExcl) ? line.priceExcl : 0;
+  return mode === "incl" ? withVat(excl) : excl;
 }
 
 /** Final unit price after the line's discount, on a given base price. */
@@ -19,7 +20,8 @@ export function finalUnitPrice(base: number, discountPct: number): number {
 
 /** Line total EXCLUDING VAT — the figure all profit maths are based on. */
 export function lineTotalExcl(line: LineItem): number {
-  return finalUnitPrice(line.priceExcl, line.discountPct) * (line.quantity || 0);
+  const excl = Number.isFinite(line.priceExcl) ? line.priceExcl : 0;
+  return finalUnitPrice(excl, line.discountPct) * (line.quantity || 0);
 }
 
 /** Line total in the requested view (excl. or incl. VAT). */
@@ -42,9 +44,11 @@ export function computeProfitability(
 
   for (const l of lines) {
     const qty = l.quantity || 0;
-    retailValue += l.priceExcl * qty; // full price excl. VAT, before discount
+    const excl = Number.isFinite(l.priceExcl) ? l.priceExcl : 0;
+    const cost = Number.isFinite(l.cost) ? l.cost : 0;
+    retailValue += excl * qty; // full price excl. VAT, before discount
     productRevenue += lineTotalExcl(l);
-    productCost += l.cost * qty;
+    productCost += cost * qty;
   }
 
   // --- extra costs (internal) ---

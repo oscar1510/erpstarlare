@@ -33,11 +33,13 @@ function Text({
 export function QuotationModal({
   order,
   prof,
+  logo,
   onClose,
   onChangeDetails,
 }: {
   order: Order;
   prof: Profitability;
+  logo?: { url: string; aspect: number };
   onClose: () => void;
   onChangeDetails: (d: QuotationDetails) => void;
 }) {
@@ -167,7 +169,7 @@ export function QuotationModal({
           <button
             className="btn-primary"
             disabled={!canGenerate}
-            onClick={() => generateQuotationPdf(order)}
+            onClick={() => generateQuotationPdf(order, logo)}
           >
             Download PDF
           </button>

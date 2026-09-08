@@ -36,10 +36,24 @@ export function saveCatalog(products: Product[], source?: string) {
 }
 
 // --- orders ---
+// Backfill older orders whose lines used the pre-VAT `retail` field so they
+// still price correctly under the current excl-VAT model.
+function migrateOrder(o: Order): Order {
+  let changed = false;
+  const lines = o.lines.map((l) => {
+    if (typeof l.priceExcl === "number") return l;
+    const legacy = (l as unknown as { retail?: number }).retail;
+    changed = true;
+    return { ...l, priceExcl: typeof legacy === "number" ? Math.round((legacy / 1.05) * 100) / 100 : 0 };
+  });
+  const details = o.details && typeof o.details.showVat === "boolean" ? o.details : { ...o.details, showVat: true };
+  return changed || details !== o.details ? { ...o, lines, details } : o;
+}
+
 export function loadOrders(): Order[] {
-  return read<Order[]>(K_ORDERS, []).sort((a, b) =>
-    b.updatedAt.localeCompare(a.updatedAt),
-  );
+  return read<Order[]>(K_ORDERS, [])
+    .map(migrateOrder)
+    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 }
 export function saveOrder(order: Order) {
   const all = read<Order[]>(K_ORDERS, []);

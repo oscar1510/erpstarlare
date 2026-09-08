@@ -28,7 +28,7 @@ function T(s: string): string {
 /** Generate and download the customer-facing quotation PDF. Internal cost /
  *  profit figures are deliberately never included. All prices shown are the
  *  B2B (excl-VAT) figures; VAT is optional (order.details.showVat). */
-export function generateQuotationPdf(order: Order) {
+export function generateQuotationPdf(order: Order, logo?: { url: string; aspect: number }) {
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
   const margin = 16;
@@ -37,12 +37,23 @@ export function generateQuotationPdf(order: Order) {
   const { customer, details } = order;
 
   // ---- header ----
-  // leaf-in-V mark (0.75 aspect) + wordmark
-  doc.addImage(LOGO_PNG, "PNG", margin, 10, 9, 12);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(16);
-  doc.setTextColor(GREEN);
-  doc.text("VEGANOLOGIE", margin + 13, 20, { charSpace: 1.4 });
+  if (logo?.url) {
+    // Custom uploaded logo (includes the wordmark) — size by aspect, capped.
+    const h = 14;
+    const w = Math.min(72, h * (logo.aspect || 4));
+    try {
+      doc.addImage(logo.url, "PNG", margin, 9, w, h);
+    } catch {
+      // fall through to the built-in mark if the image can't be drawn
+    }
+  } else {
+    // built-in leaf-in-V mark (0.75 aspect) + wordmark
+    doc.addImage(LOGO_PNG, "PNG", margin, 10, 9, 12);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(16);
+    doc.setTextColor(GREEN);
+    doc.text("VEGANOLOGIE", margin + 13, 20, { charSpace: 1.4 });
+  }
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);

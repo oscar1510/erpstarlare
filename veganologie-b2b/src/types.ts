@@ -32,6 +32,11 @@ export type VatMode = "excl" | "incl";
 
 export interface AppSettings {
   vatMode: VatMode;
+  /** Custom brand logo (PNG data URL) shown in the app header and on the PDF,
+   *  replacing the built-in mark + wordmark. Uploaded by the user, stored in
+   *  their browser. */
+  logoDataUrl?: string;
+  logoAspect?: number; // width / height, for sizing without distortion
 }
 
 export type PackagingKind = "veganologie" | "custom";

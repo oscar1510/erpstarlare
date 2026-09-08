@@ -17,6 +17,7 @@ import {
   defaultDetails,
 } from "./lib/storage";
 import { Wordmark } from "./components/Logo";
+import { LogoModal } from "./components/LogoModal";
 import { SEED_CATALOG } from "./data/seedCatalog";
 
 // Bump when the built-in catalog changes so returning users get the update.
@@ -44,7 +45,7 @@ function blankOrder(): Order {
   };
 }
 
-type ModalKind = null | "import" | "catalog" | "saved" | "quote";
+type ModalKind = null | "import" | "catalog" | "saved" | "quote" | "logo";
 
 export default function App() {
   const [catalog, setCatalog] = useState<Product[]>([]);
@@ -175,11 +176,25 @@ export default function App() {
       {/* top bar */}
       <header className="sticky top-0 z-30 border-b border-forest-100 bg-cream/90 backdrop-blur">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-3 px-4 py-3">
-          <Wordmark />
+          <button
+            type="button"
+            onClick={() => setModal("logo")}
+            title="Change logo"
+            className="rounded-lg outline-none focus:ring-2 focus:ring-forest-500/30"
+          >
+            {settings.logoDataUrl ? (
+              <img src={settings.logoDataUrl} alt="Veganologie" className="h-8 max-w-[220px] object-contain" />
+            ) : (
+              <Wordmark />
+            )}
+          </button>
           <span className="hidden text-xs text-forest-400 sm:inline">
             Corporate Order &amp; Profitability
           </span>
           <div className="ml-auto flex flex-wrap items-center gap-2">
+            <button className="btn-ghost" onClick={() => setModal("logo")}>
+              Logo
+            </button>
             <button className="btn-ghost" onClick={() => setModal("import")}>
               Import products
             </button>
@@ -294,8 +309,17 @@ export default function App() {
         <QuotationModal
           order={order}
           prof={prof}
+          logo={settings.logoDataUrl ? { url: settings.logoDataUrl, aspect: settings.logoAspect || 4 } : undefined}
           onClose={() => setModal(null)}
           onChangeDetails={(details) => update({ details })}
+        />
+      )}
+      {modal === "logo" && (
+        <LogoModal
+          logoDataUrl={settings.logoDataUrl}
+          onClose={() => setModal(null)}
+          onSave={(logoDataUrl, logoAspect) => updateSettings({ ...settings, logoDataUrl, logoAspect })}
+          onRemove={() => updateSettings({ ...settings, logoDataUrl: undefined, logoAspect: undefined })}
         />
       )}
 
