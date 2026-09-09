@@ -47,27 +47,26 @@ export function ImportModal({
   onImported: (products: Product[]) => void;
   hasCatalog: boolean;
 }) {
-  const [priceFile, setPriceFile] = useState<File | null>(null);
-  const [costFile, setCostFile] = useState<File | null>(null);
+  const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<ImportResult | null>(null);
 
   const run = async () => {
-    if (!priceFile || !costFile) return;
+    if (!file) return;
     setBusy(true);
     setError("");
     try {
-      const res = await buildCatalog(priceFile, costFile);
+      const res = await buildCatalog(file);
       if (res.products.length === 0) {
         setError(
-          "No products could be read. Check that the retail file has a product-name column and a price column.",
+          "No products could be read. The file needs a product-name column plus a cost and/or retail-price column.",
         );
       } else {
         setResult(res);
       }
     } catch (e) {
-      setError((e as Error).message || "Could not read the files.");
+      setError((e as Error).message || "Could not read the file.");
     } finally {
       setBusy(false);
     }
@@ -76,32 +75,26 @@ export function ImportModal({
   return (
     <Modal title="Import products" onClose={onClose}>
       <p className="mb-4 text-sm text-forest-600">
-        Upload the <strong>Retail Price</strong> file and the{" "}
-        <strong>Production Cost</strong> file. They are matched by SKU when present, otherwise by
-        product name. Production costs are internal and never appear on quotations.
+        Upload the catalog file. Each <strong>row is one product</strong> (the same product from a
+        different facility is a separate row). Retail price is treated as VAT-inclusive; production
+        costs are internal and never appear on quotations.
       </p>
 
       {!result && (
         <div className="space-y-3">
           <FilePick
-            label="Price file"
-            hint="Columns: Product Name, Full Price (treated as VAT-inclusive). SKU optional."
-            file={priceFile}
-            onPick={setPriceFile}
-          />
-          <FilePick
-            label="Production Cost file"
-            hint="Columns: Product Name, Cost / Landing Cost (SKU optional)"
-            file={costFile}
-            onPick={setCostFile}
+            label="Catalog file"
+            hint="Columns: Name, Colour Ways, Final Landing Cost, Retail Price (xlsx/csv)"
+            file={file}
+            onPick={setFile}
           />
 
           {error && <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{error}</div>}
 
           {hasCatalog && (
             <p className="text-xs text-amber-600">
-              Importing will replace the current product catalog. Saved orders keep their own
-              price/cost snapshots and are unaffected.
+              Importing replaces the current catalog. Saved orders keep their own price/cost
+              snapshots and are unaffected.
             </p>
           )}
 
@@ -109,11 +102,7 @@ export function ImportModal({
             <button className="btn-ghost" onClick={onClose}>
               Cancel
             </button>
-            <button
-              className="btn-primary"
-              disabled={!priceFile || !costFile || busy}
-              onClick={run}
-            >
+            <button className="btn-primary" disabled={!file || busy} onClick={run}>
               {busy ? "Reading…" : "Import"}
             </button>
           </div>

@@ -1,8 +1,11 @@
 import type { Order, Product, OrderOptions, QuotationDetails, Customer, AppSettings } from "../types";
 
 // Everything persists to localStorage — no server, no database.
-const K_CATALOG = "vg_catalog_v1";
-const K_CATALOG_SRC = "vg_catalog_src_v1";
+// v2: full catalog replaced from the combined Production Dashboard file. Bumping
+// the key deliberately drops every browser's old (v1) catalog so everyone loads
+// the new data fresh.
+const K_CATALOG = "vg_catalog_v2";
+const K_CATALOG_SRC = "vg_catalog_src_v2";
 const K_ORDERS = "vg_orders_v1";
 const K_COUNTER = "vg_quote_counter_v1";
 const K_SETTINGS = "vg_settings_v1";
