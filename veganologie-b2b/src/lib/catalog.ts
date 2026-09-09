@@ -5,9 +5,9 @@ import type { Product } from "../types";
 // Product import — single combined file.
 //
 // The Veganologie "Production Dashboard" file has one row per product variant,
-// each with its own landing cost and retail price:
+// each with its own material, landing cost and retail price:
 //
-//   Name | Colour Ways | Final Landing Cost AED | RETAIL PRICE
+//   Name | Material | Colour Ways | Final Landing Cost AED | RETAIL PRICE
 //
 // So the importer is a straight 1:1 copy — one product per row, no matching or
 // blending. The same product from different production facilities is kept as
@@ -88,6 +88,10 @@ export async function buildCatalog(file: File): Promise<ImportResult> {
 
   const nameCol = Math.max(0, colIndex(H, ["name", "product", "item", "description"]));
   const colourCol = colIndex(H, ["colour ways", "colourway", "colour", "color", "variant"]);
+  // The material column may have a blank header; fall back to the column that
+  // sits between the name and the colour columns.
+  let materialCol = colIndex(H, ["material", "fabric"]);
+  if (materialCol < 0 && colourCol > nameCol + 1) materialCol = nameCol + 1;
   const costCol = colIndex(H, ["landing", "cost"], ["retail"]);
   const retailCol =
     colIndex(H, ["retail", "full price", "rrp", "list price"], ["cost"]) >= 0
@@ -110,11 +114,16 @@ export async function buildCatalog(file: File): Promise<ImportResult> {
     if (!lastName || (cost == null && retailIncl == null)) continue;
 
     const colour = colourCol >= 0 ? str(r[colourCol]) : "";
+    const material = materialCol >= 0 ? str(r[materialCol]) : "";
     rowsWithData++;
     if (cost != null) matched++;
 
-    const name = colour ? `${lastName} — ${colour}` : lastName;
-    let id = slug(lastName) + (colour ? "-" + slug(colour) : "");
+    // display: "Name — Colour (Material)"
+    let name = lastName;
+    if (colour) name += ` — ${colour}`;
+    if (material) name += ` (${material})`;
+
+    let id = slug(lastName) + (material ? "-" + slug(material) : "") + (colour ? "-" + slug(colour) : "");
     let n = 2;
     const base = id;
     while (seen.has(id)) id = `${base}-${n++}`;
@@ -124,6 +133,7 @@ export async function buildCatalog(file: File): Promise<ImportResult> {
       id,
       sku: id,
       name,
+      material,
       priceExcl: retailIncl != null ? round2(retailIncl / 1.05) : 0,
       cost: cost != null ? round2(cost) : 0,
       costMatched: cost != null,

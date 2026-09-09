@@ -9,7 +9,8 @@
 export interface Product {
   id: string;
   sku: string; // real SKU if the file had one, otherwise a derived key
-  name: string; // customer-facing display name (may include colour/fabric)
+  name: string; // customer-facing display name (includes colour + material)
+  material?: string; // PU / Bamboo / Apple / … (also shown in the name)
   priceExcl: number; // unit price EXCLUDING 5% VAT, AED
   cost: number; // INTERNAL production/landing cost, AED — never shown to customers
   costMatched: boolean; // false if we couldn't match a cost and defaulted it
