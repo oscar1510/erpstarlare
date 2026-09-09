@@ -47,9 +47,9 @@ export function PasswordGate({ children }: { children: ReactNode }) {
           <BrandLogo height={30} />
         </div>
         <h1 className="text-sm font-semibold uppercase tracking-[0.18em] text-forest-500">
-          Area riservata
+          Restricted access
         </h1>
-        <p className="mt-1 text-sm text-forest-600">Inserisci la password per accedere.</p>
+        <p className="mt-1 text-sm text-forest-600">Enter the password to continue.</p>
         <input
           type="password"
           autoFocus
@@ -61,9 +61,9 @@ export function PasswordGate({ children }: { children: ReactNode }) {
             setError(false);
           }}
         />
-        {error && <div className="mt-2 text-sm text-red-600">Password errata.</div>}
+        {error && <div className="mt-2 text-sm text-red-600">Incorrect password.</div>}
         <button type="submit" className="btn-primary mt-4 w-full">
-          Entra
+          Enter
         </button>
       </form>
     </div>
