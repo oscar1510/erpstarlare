@@ -32,6 +32,15 @@ export function pct(n: number): string {
   return v.toFixed(1) + "%";
 }
 
+/** Append the material to a product name. On the quotation the material reads
+ *  as "<material> Leather" (e.g. "Bamboo Leather"); internally it's just the
+ *  bare material. Returns the plain name when there is no material. */
+export function withMaterial(name: string, material?: string, leather = false): string {
+  const m = (material || "").trim();
+  if (!m) return name;
+  return `${name} (${m}${leather ? " Leather" : ""})`;
+}
+
 export function formatDate(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "";

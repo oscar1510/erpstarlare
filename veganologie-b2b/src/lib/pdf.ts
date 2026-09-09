@@ -2,7 +2,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import type { Order } from "../types";
 import { computeProfitability, finalUnitPrice, lineTotalExcl } from "./calc";
-import { num, formatDate } from "./format";
+import { num, formatDate, withMaterial } from "./format";
 import { LOGO_PNG } from "../data/logo";
 
 const GREEN = "#14442e";
@@ -98,7 +98,7 @@ export function generateQuotationPdf(order: Order, logo?: { url: string; aspect:
 
   // ---- product table (all prices excl. VAT) ----
   const body = order.lines.map((l) => [
-    T(l.name),
+    T(details.showMaterial ? withMaterial(l.name, l.material, true) : l.name),
     String(l.quantity),
     `AED ${num(l.priceExcl)}`,
     l.discountPct ? `${l.discountPct}%` : "-",

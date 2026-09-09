@@ -20,7 +20,8 @@ export interface Product {
 export interface LineItem {
   id: string;
   productId: string;
-  name: string; // snapshot of product name (so edits survive catalog replacement)
+  name: string; // snapshot of product name (colour included, material NOT)
+  material?: string; // snapshot material (PU / Bamboo / …), shown optionally
   priceExcl: number; // snapshot unit price excl. VAT
   cost: number; // snapshot internal cost
   quantity: number;
@@ -85,6 +86,7 @@ export interface QuotationDetails {
   certifications: string; // e.g. "GRS | PETA-Approved Vegan | ..."
   terms: string; // one bullet per line
   showVat: boolean; // if true, add the VAT 5% + incl-VAT total lines on the PDF
+  showMaterial: boolean; // if true, show "<material> Leather" after each product
 }
 
 export interface Order {

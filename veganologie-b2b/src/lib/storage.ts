@@ -49,7 +49,10 @@ function migrateOrder(o: Order): Order {
     changed = true;
     return { ...l, priceExcl: typeof legacy === "number" ? Math.round((legacy / 1.05) * 100) / 100 : 0 };
   });
-  const details = o.details && typeof o.details.showVat === "boolean" ? o.details : { ...o.details, showVat: true };
+  let details = o.details;
+  if (details && (typeof details.showVat !== "boolean" || typeof details.showMaterial !== "boolean")) {
+    details = { ...details, showVat: details.showVat ?? true, showMaterial: details.showMaterial ?? true };
+  }
   return changed || details !== o.details ? { ...o, lines, details } : o;
 }
 
@@ -143,5 +146,6 @@ export function defaultDetails(): QuotationDetails {
       "Lead times commence from deposit receipt and approval of all designs",
     ].join("\n"),
     showVat: true,
+    showMaterial: true,
   };
 }

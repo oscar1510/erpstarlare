@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import type { LineItem, Product, VatMode } from "../types";
 import { finalUnitPrice, lineTotal, unitPrice, withVat } from "../lib/calc";
-import { aed, num } from "../lib/format";
+import { aed, num, withMaterial } from "../lib/format";
 import { newId } from "../lib/storage";
 
 function ProductSearch({
@@ -57,7 +57,7 @@ function ProductSearch({
               }}
             >
               <span className="flex items-center gap-2">
-                <span className="text-forest-900">{p.name}</span>
+                <span className="text-forest-900">{withMaterial(p.name, p.material)}</span>
                 {!p.costMatched && <span className="pill bg-amber-100 text-amber-700">no cost</span>}
               </span>
               <span className="whitespace-nowrap text-forest-500">{aed(shown(p))}</span>
@@ -94,6 +94,7 @@ export function ProductsSection({
         id: newId(),
         productId: p.id,
         name: p.name,
+        material: p.material,
         priceExcl: p.priceExcl,
         cost: p.cost,
         quantity: 1,
@@ -155,7 +156,7 @@ export function ProductsSection({
                 return (
                   <tr key={l.id} className="border-t border-forest-50">
                     <td className="py-2 pr-2">
-                      <div className="text-forest-900">{l.name}</div>
+                      <div className="text-forest-900">{withMaterial(l.name, l.material)}</div>
                       {l.cost === 0 && (
                         <span className="pill mt-0.5 bg-amber-100 text-amber-700">
                           cost not set — margin understated

@@ -92,6 +92,22 @@ export function QuotationModal({
             </span>
           </label>
 
+          <label className="flex items-start gap-2 text-sm text-forest-700">
+            <input
+              type="checkbox"
+              className="mt-0.5"
+              checked={d.showMaterial}
+              onChange={(e) => patch({ showMaterial: e.target.checked })}
+            />
+            <span>
+              Show the material next to each product
+              <span className="block text-xs text-forest-400">
+                Adds the material as “… (Bamboo Leather)”, “… (Apple Leather)” on the quotation.
+                Untick to hide it.
+              </span>
+            </span>
+          </label>
+
           <div className="flex gap-3">
             <div className="w-28">
               <label className="field-label">Valid for (days)</label>

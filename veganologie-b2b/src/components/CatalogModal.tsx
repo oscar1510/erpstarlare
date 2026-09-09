@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Modal } from "./Modal";
 import type { Product } from "../types";
 import { withVat } from "../lib/calc";
+import { withMaterial } from "../lib/format";
 
 export function CatalogModal({
   catalog,
@@ -69,7 +70,7 @@ export function CatalogModal({
             {filtered.map((p) => (
               <tr key={p.id} className="border-t border-forest-50">
                 <td className="px-3 py-1.5">
-                  <span className="text-forest-900">{p.name}</span>
+                  <span className="text-forest-900">{withMaterial(p.name, p.material)}</span>
                   {(!p.costMatched || p.cost === 0) && (
                     <span className="pill ml-2 bg-amber-100 text-amber-700">check cost</span>
                   )}

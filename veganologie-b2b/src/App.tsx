@@ -21,7 +21,7 @@ import { LogoModal } from "./components/LogoModal";
 import { SEED_CATALOG } from "./data/seedCatalog";
 
 // Bump when the built-in catalog changes so returning users get the update.
-const SEED_SOURCE = "seed:7";
+const SEED_SOURCE = "seed:8";
 import { CustomerSection } from "./components/CustomerSection";
 import { ProductsSection } from "./components/ProductsSection";
 import { OptionsSection } from "./components/OptionsSection";
@@ -115,7 +115,7 @@ export default function App() {
       ...o,
       lines: o.lines.map((l) => {
         const p = products.find((x) => x.id === l.productId);
-        return p ? { ...l, cost: p.cost, priceExcl: p.priceExcl } : l;
+        return p ? { ...l, cost: p.cost, priceExcl: p.priceExcl, material: p.material } : l;
       }),
     }));
     flash("Catalog updated");
@@ -305,7 +305,7 @@ export default function App() {
               ...o,
               lines: o.lines.map((l) => {
                 const p = SEED_CATALOG.find((x) => x.id === l.productId);
-                return p ? { ...l, cost: p.cost, priceExcl: p.priceExcl } : l;
+                return p ? { ...l, cost: p.cost, priceExcl: p.priceExcl, material: p.material } : l;
               }),
             }));
             flash("Catalog reset to built-in");
