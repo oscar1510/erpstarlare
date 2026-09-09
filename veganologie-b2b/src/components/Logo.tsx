@@ -1,44 +1,44 @@
-// Veganologie logo — a hand-built recreation of the leaf-in-V mark + wordmark.
-// This is the DEFAULT logo baked into the app, so it looks the same on every
-// device without uploading anything. Uploading a logo (header "Logo" button)
-// overrides it, but only in that browser.
-export const MARK_COLOR = "#14442e";
+// The real Veganologie logo (provided as SVG), cropped to its content. This is
+// the DEFAULT logo baked into the app, so it's identical on every device. A
+// per-browser uploaded logo (header "Logo" button) overrides it locally.
+export const MARK_COLOR = "#0f4c27";
 
-export function LeafVMark({ size = 40, color = MARK_COLOR }: { size?: number; color?: string }) {
+const GREEN = "#0f4c27";
+
+export function BrandLogo({ height = 34, className = "" }: { height?: number; className?: string }) {
   return (
     <svg
-      width={(size * 100) / 132}
-      height={size}
-      viewBox="0 0 100 132"
-      fill="none"
-      stroke={color}
-      strokeWidth="3"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
+      height={height}
+      viewBox="70.27 305.39 415.36 70.31"
+      xmlns="http://www.w3.org/2000/svg"
+      role="img"
+      aria-label="Veganologie"
+      className={className}
     >
-      {/* V */}
-      <path d="M20 16 L47 118" />
-      <path d="M47 118 L64 62" />
-      {/* leaf */}
-      <path d="M60 18 C80 26 84 52 71 71 C64 81 53 84 48 75 C43 66 46 38 60 18 Z" />
-      {/* central vein */}
-      <path d="M61 27 C55 44 51 61 49 74" strokeWidth="2" />
-      {/* side veins */}
-      <path d="M57 41 C62 39 67 39 71 42" strokeWidth="1.6" />
-      <path d="M54 53 C59 52 64 53 68 56" strokeWidth="1.6" />
-      <path d="M51 64 C55 64 60 66 63 69" strokeWidth="1.6" />
-      {/* curled base */}
-      <path d="M49 74 C45 83 39 84 38 77" strokeWidth="2" />
+      {/* wordmark (fills) */}
+      <path fill={GREEN} d="M147.43,325.85l9.49,27.56,9.24-27.54h2.33s-11.57,33.65-11.57,33.65l-11.81-33.67h2.33Z" />
+      <path fill={GREEN} d="M191.54,327.82h-13.39s0,11.73,0,11.73h13.1s0,1.95,0,1.95h-13.1s-.01,14.78-.01,14.78h13.39s0,1.95,0,1.95h-15.52s.02-32.36.02-32.36h15.52s0,1.95,0,1.95Z" />
+      <path fill={GREEN} d="M217.59,342.73h13.58c0,2.97-.64,7.24-3.31,10.63-2.86,3.64-7.23,5.43-12.18,5.42-9.51,0-16.73-7-16.72-16.65,0-9.6,7.48-16.68,16.89-16.67,4.56,0,7.61,1.56,10.13,3.5,1.36,1.07,2.57,2.23,3.88,4.08l-1.7,1.36c-.92-1.55-2.23-2.86-3.1-3.59-2.04-1.7-5.24-3.4-9.26-3.4-8.29,0-14.6,6.59-14.61,14.83,0,8.1,6.1,14.6,14.44,14.61,5.53,0,9.51-2.81,11.26-5.47,1.26-1.94,2.04-4.61,2.14-6.69h-11.45s0-1.95,0-1.95Z" />
+      <path fill={GREEN} d="M249.16,330.39l-11.27,27.88h-2.33s13.65-33.31,13.65-33.31l13.41,33.33h-2.33s-11.13-27.9-11.13-27.9ZM249.16,330.39" />
+      <path fill={GREEN} d="M270.19,358.29l.02-32.69,27.14,28.44.02-28.08h2.13s-.02,33.18-.02,33.18l-27.14-28.44-.02,27.6h-2.13Z" />
+      <path fill={GREEN} d="M342.68,342.24c0,9.31-7.34,16.63-16.79,16.62-9.51,0-16.78-7.34-16.77-16.65,0-9.31,7.34-16.68,16.79-16.67,9.46,0,16.78,7.38,16.77,16.7ZM340.45,342.24c0-8.29-6.2-14.75-14.54-14.75-8.34,0-14.55,6.44-14.56,14.73,0,8.25,6.2,14.7,14.54,14.71,8.34,0,14.56-6.44,14.56-14.68Z" />
+      <path fill={GREEN} d="M354.46,326l-.02,30.41h9.02s0,1.95,0,1.95h-11.16s.02-32.36.02-32.36h2.13Z" />
+      <path fill={GREEN} d="M400.4,342.28c0,9.31-7.34,16.63-16.79,16.62-9.51,0-16.78-7.34-16.77-16.65,0-9.31,7.34-16.68,16.79-16.67,9.46,0,16.78,7.38,16.77,16.7ZM398.17,342.28c0-8.29-6.2-14.75-14.54-14.75-8.34,0-14.55,6.44-14.56,14.73,0,8.25,6.2,14.7,14.54,14.71,8.34,0,14.56-6.44,14.56-14.68Z" />
+      <path fill={GREEN} d="M426.7,342.88h13.58c0,2.97-.64,7.24-3.31,10.63-2.86,3.64-7.23,5.43-12.18,5.42-9.51,0-16.73-7-16.72-16.65,0-9.6,7.48-16.68,16.89-16.67,4.56,0,7.61,1.56,10.13,3.5,1.36,1.07,2.57,2.23,3.88,4.08l-1.7,1.36c-.92-1.55-2.23-2.86-3.1-3.59-2.04-1.7-5.24-3.4-9.26-3.4-8.29,0-14.6,6.59-14.61,14.83,0,8.1,6.1,14.6,14.44,14.61,5.53,0,9.51-2.81,11.26-5.47,1.26-1.94,2.04-4.61,2.14-6.69h-11.45s0-1.95,0-1.95Z" />
+      <path fill={GREEN} d="M451.93,326.07l-.02,32.35h-2.13s.02-32.35.02-32.35h2.13Z" />
+      <path fill={GREEN} d="M478.81,328.03h-13.39s0,11.73,0,11.73h13.1s0,1.95,0,1.95h-13.1s-.01,14.78-.01,14.78h13.39s0,1.95,0,1.95h-15.52s.02-32.36.02-32.36h15.52s0,1.95,0,1.95Z" />
+      {/* leaf-in-V mark (strokes) */}
+      <path fill="none" stroke={GREEN} strokeMiterlimit={10} strokeWidth={2} d="M97.77,363.32l-20.7-47.99h11.64c3.88.01,7.55,1.37,10.25,7.38l9.88,20.81" />
+      <path fill="none" stroke={GREEN} strokeMiterlimit={10} strokeWidth={2} d="M128.57,312.26c-24.45-1.19-24.27,13.19-22.82,24.78" />
+      <path fill="none" stroke={GREEN} strokeMiterlimit={10} strokeWidth={2} d="M128.57,312.26c9.57,16.3,5.05,24.06-6.65,24.7-11.7.64-7.01,12.08,3.32,4.31,10.33-7.77,8.38-4.94,7.21,2.22-1.16,7.16-30.43,3.84-20.49,8.67,9.94,4.83,15.68-6.93,17.95-3.4,2.27,3.53-16.91,26.94-28.88,18.19-8.72-6.38-1.11-16.18,5.28-21.28,15.11-12.06,15.16-24.69,15.16-24.69" />
+      <path fill="none" stroke={GREEN} strokeMiterlimit={10} d="M98.85,354.08c3.64,0,9.43,14.23,24.63,1.9" />
+      <path fill="none" stroke={GREEN} strokeMiterlimit={10} d="M108.83,343.79c3.64,0,3.91,4.76,15.32,1.54" />
+      <path fill="none" stroke={GREEN} strokeMiterlimit={10} d="M112.74,339.34c0-3.56-6.36-7.91.02-20.64" />
+      <path fill="none" stroke={GREEN} strokeMiterlimit={10} d="M119.02,329.72c3.32-3.43,10.64.77,10.29-8.17" />
     </svg>
   );
 }
 
 export function Wordmark({ className = "" }: { className?: string }) {
-  return (
-    <div className={`flex items-center gap-2.5 ${className}`}>
-      <LeafVMark size={34} />
-      <span className="text-xl font-medium tracking-[0.22em] text-forest-700">VEGANOLOGIE</span>
-    </div>
-  );
+  return <BrandLogo height={34} className={className} />;
 }

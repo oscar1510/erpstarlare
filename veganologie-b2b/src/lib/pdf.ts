@@ -3,7 +3,7 @@ import autoTable from "jspdf-autotable";
 import type { Order } from "../types";
 import { computeProfitability, finalUnitPrice, lineTotalExcl } from "./calc";
 import { num, formatDate, withMaterial } from "./format";
-import { LOGO_PNG } from "../data/logo";
+import { LOGO_PNG, LOGO_ASPECT } from "../data/logo";
 
 const GREEN = "#14442e";
 const GREEN_LIGHT = "#eef4f0";
@@ -37,12 +37,13 @@ export function generateQuotationPdf(order: Order, logo?: { url: string; aspect:
   const { customer, details } = order;
 
   // ---- header ----
-  if (logo?.url) {
-    // Custom uploaded logo (includes the wordmark) — fit within a height and
-    // width cap without distortion.
-    const aspect = logo.aspect || 4;
-    const maxH = 18;
-    const maxW = 95;
+  // Logo (the built-in one is the real Veganologie logo and already includes the
+  // wordmark, as does an uploaded logo) — fit within a height/width cap.
+  const brand = logo?.url ? logo : { url: LOGO_PNG, aspect: LOGO_ASPECT };
+  {
+    const aspect = brand.aspect || 4;
+    const maxH = 14;
+    const maxW = 96;
     let w = maxH * aspect;
     let h = maxH;
     if (w > maxW) {
@@ -50,17 +51,13 @@ export function generateQuotationPdf(order: Order, logo?: { url: string; aspect:
       h = maxW / aspect;
     }
     try {
-      doc.addImage(logo.url, "PNG", margin, 10, w, h);
+      doc.addImage(brand.url, "PNG", margin, 11, w, h);
     } catch {
-      // fall through to the built-in mark if the image can't be drawn
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(16);
+      doc.setTextColor(GREEN);
+      doc.text("VEGANOLOGIE", margin, 20, { charSpace: 1.4 });
     }
-  } else {
-    // built-in leaf-in-V mark (0.75 aspect) + wordmark
-    doc.addImage(LOGO_PNG, "PNG", margin, 10, 9, 12);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(16);
-    doc.setTextColor(GREEN);
-    doc.text("VEGANOLOGIE", margin + 13, 20, { charSpace: 1.4 });
   }
 
   doc.setFont("helvetica", "normal");
