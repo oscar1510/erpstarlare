@@ -12,6 +12,12 @@ import Link from "next/link";
 
 export default async function BillingPage() {
   const invoices = await db.invoice.findMany({ where: { deletedAt: null }, orderBy: { invoiceDate: "desc" } });
+  // Map each invoice to its branded document (the thing actually sent), if any.
+  const brandedDocs = await db.quotation.findMany({
+    where: { invoiceId: { in: invoices.map((i) => i.id) }, deletedAt: null },
+    select: { id: true, invoiceId: true },
+  });
+  const docByInvoice = new Map(brandedDocs.map((d) => [d.invoiceId, d.id]));
 
   return (
     <div>
@@ -59,6 +65,17 @@ export default async function BillingPage() {
           { header: "Total", render: (i) => formatMoney(i.total, i.currency) },
           { header: "Source", render: (i) => labelize(i.source) },
           { header: "Status", render: (i) => <StatusBadge status={i.status} /> },
+          {
+            header: "Document",
+            render: (i) => {
+              const docId = docByInvoice.get(i.id);
+              return docId ? (
+                <Link href={`/billing/documents/${docId}`} className="text-brand-700 hover:underline whitespace-nowrap">📄 View</Link>
+              ) : (
+                <a href={`/billing/${i.id}/pdf`} target="_blank" className="text-brand-700 hover:underline whitespace-nowrap">📄 PDF</a>
+              );
+            },
+          },
         ]}
       />
     </div>

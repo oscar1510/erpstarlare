@@ -2,7 +2,7 @@
 
 import { db } from "@/lib/db";
 import { logAudit } from "@/lib/audit";
-import { nextInvoiceNumber, nextQuotationNumber } from "@/lib/numbering";
+import { nextInvoiceNumber, nextQuotationNumber, syncCounterToNumber } from "@/lib/numbering";
 import { computeTotals } from "@/lib/quote-doc";
 import { parseFormDate, parseFormNumber } from "@/lib/format";
 import { redirect } from "next/navigation";
@@ -41,7 +41,22 @@ function parseExtraItems(fd: FormData): string | undefined {
 export async function createGeneratedDocument(formData: FormData) {
   const kind = str(formData, "kind") === "INVOICE" ? "INVOICE" : "QUOTATION";
   const docDate = parseFormDate(formData.get("docDate")) ?? new Date();
-  const number = kind === "INVOICE" ? await nextInvoiceNumber(docDate) : await nextQuotationNumber(docDate);
+
+  // Use the hand-edited number if given (and keep the counter progressive),
+  // otherwise auto-issue the next sequential number.
+  const customNumber = str(formData, "number");
+  let number: string;
+  if (customNumber) {
+    const clashQ = await db.quotation.findFirst({ where: { number: customNumber } });
+    const clashI = await db.invoice.findFirst({ where: { number: customNumber } });
+    if (clashQ || clashI) {
+      redirect(`/billing/documents/new?kind=${kind}&error=${encodeURIComponent(`Number ${customNumber} is already used`)}`);
+    }
+    number = customNumber;
+    await syncCounterToNumber(customNumber);
+  } else {
+    number = kind === "INVOICE" ? await nextInvoiceNumber(docDate) : await nextQuotationNumber(docDate);
+  }
 
   const clientId = str(formData, "clientId");
 

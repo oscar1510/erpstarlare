@@ -7,6 +7,7 @@ import { ClientLinkSelect } from "@/components/ClientLinkSelect";
 import { SubmitButton } from "@/components/SubmitButton";
 import { CURRENCIES, PAYMENT_METHODS } from "@/lib/constants";
 import { FIXED_ACCESS_ITEMS } from "@/lib/quote-doc";
+import { peekNextInvoiceNumber, peekNextQuotationNumber } from "@/lib/numbering";
 import { createGeneratedDocument } from "../actions";
 
 const PACKAGE_TYPES = ["Monthly Subscription", "Quarterly Subscription", "Annual Subscription", "One-off Campaign", "Custom"];
@@ -19,13 +20,14 @@ const VAT_MODES = [
 const FREQUENCIES = ["One-off", "Monthly", "Quarterly", "Annual"];
 const REFUND_POLICIES = ["Not applicable", "Pro-rata refund", "Full refund within 7 days", "No refund"];
 
-export default async function NewDocumentPage({ searchParams }: { searchParams: Promise<{ kind?: string; clientId?: string }> }) {
-  const { kind: kindParam, clientId } = await searchParams;
+export default async function NewDocumentPage({ searchParams }: { searchParams: Promise<{ kind?: string; clientId?: string; error?: string }> }) {
+  const { kind: kindParam, clientId, error } = await searchParams;
   const kind = kindParam === "INVOICE" ? "INVOICE" : "QUOTATION";
   const isInvoice = kind === "INVOICE";
   const clients = await db.client.findMany({ orderBy: { name: "asc" } });
   const today = new Date().toISOString().slice(0, 10);
   const validDefault = new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10);
+  const suggestedNumber = isInvoice ? await peekNextInvoiceNumber() : await peekNextQuotationNumber();
 
   return (
     <div className="max-w-4xl">
@@ -45,6 +47,17 @@ export default async function NewDocumentPage({ searchParams }: { searchParams: 
 
       <form action={createGeneratedDocument} className="space-y-5">
         <input type="hidden" name="kind" value={kind} />
+
+        {error && <div className="card p-3 bg-red-50 border-red-200 text-sm text-red-700">{error}</div>}
+
+        <Section title={`0 · ${isInvoice ? "Invoice" : "Quotation"} number`}>
+          <FormGrid>
+            <Field label={`${isInvoice ? "Invoice" : "Quotation"} number`} hint="Auto-filled with the next progressive number — change it if you need to.">
+              <TextInput name="number" defaultValue={suggestedNumber} required />
+            </Field>
+            <div />
+          </FormGrid>
+        </Section>
 
         <Section title="1 · Client">
           <FormGrid>
